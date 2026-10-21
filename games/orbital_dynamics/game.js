@@ -181,6 +181,8 @@ function applyViewLayout(){
   const shown = ["ts","gt","gl"].filter(k=>state.views[k]);
   ["ts","gt","gl"].forEach(k=>$("view-"+k).classList.remove("span"));
   if(shown.length===1) $("view-"+shown[0]).classList.add("span");
+  // the panels just changed size, so the canvases have to be re-fitted
+  fitAll();
 }
 
 let toastTimer=null;
@@ -202,12 +204,16 @@ const tasks=[
   {cv:cvGl, ctx:null, dpr:1},
 ];
 function fitCanvas(t){
-  const dpr=Math.min(2, window.devicePixelRatio||1);
   const r=t.cv.getBoundingClientRect();
+  // A hidden panel has no layout box: keep the current backing store instead of
+  // collapsing it, otherwise showing the view later stretches a 2x2 bitmap.
+  if(r.width<1||r.height<1) return false;
+  const dpr=Math.min(2, window.devicePixelRatio||1);
   t.dpr=dpr;
   t.cv.width=Math.max(2,Math.round(r.width*dpr));
   t.cv.height=Math.max(2,Math.round(r.height*dpr));
   t.ctx=t.cv.getContext("2d");
+  return true;
 }
 function fitAll(){ tasks.forEach(fitCanvas); }
 window.addEventListener("resize",()=>{ fitAll(); });
@@ -676,7 +682,6 @@ function loop(now){
 }
 
 /* ---------- init ---------- */
-fitAll();
 applyViewLayout();
 newTarget();
 updateBest();
