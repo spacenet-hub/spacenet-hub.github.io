@@ -131,8 +131,16 @@
 <div id="app">
   <!-- ================= CONTROLS ================= -->
   <aside id="side">
-    <h1>Orbital Dynamics<small>A satellite's orbit decides where AND when it goes</small></h1>
+    <h1>Near-Term Orbital Dynamics<small>A satellite's orbit decides where AND when it goes</small></h1>
     <div class="scroll">
+
+      <div class="grp">Instructions:</div>
+      <div class="legend">
+        <p>Adjust the ORBITAL PARAMETERS below (i, &Omega;, M&#8320;) to get the <b style="color:#ffd23f">satellite</b> to pass as close as possible to the <b style="color:#ff5db1">target</b>.
+        To adjust the difficulty level, turn the different VIEWS on and off. For example: all views on &rarr; easy; TIME SERIES and FIXED GLOBE &rarr; medium; FIXED GLOBE only &rarr; hard.</p>
+
+        <p>In this initial version we only consider a single circular repeat-ground-track orbit at 15 rev / sidereal day, or altitude of 561 km. One orbit shifts the ground track <b style="color:var(--accent2)">24&deg;</b> west each pass.</p>
+      </div>
 
       <div class="grp">Orbital parameters</div>
 
@@ -150,6 +158,22 @@
         <div class="row"><label>Mean Anomaly <span style="color:var(--dim)">M&#8320;</span></label><span class="val" id="vMa">0.0&deg;</span></div>
         <input id="ma" type="range" min="0" max="360" step="0.1" value="0">
       </div>
+
+      <div class="grp">Views (toggle)</div>
+      <div class="btns">
+        <button class="vt" data-v="ts" class="active">Time</button>
+        <button class="vt" data-v="gt" class="active">Track</button>
+        <button class="vt" data-v="gl" class="active">Globe</button>
+      </div>
+      <div class="btns" style="margin-top:6px;">
+        <button id="btnResetView">&#8634; Reset globe view</button>
+      </div>
+
+      <div class="grp">Telemetry</div>
+      <div class="stat" id="liveMiss"><span>Ground distance to target</span><b>&mdash;</b></div>
+      <div class="stat" id="bestMiss"><span>Closest approach so far</span><b>&mdash;</b></div>
+      <div class="stat"><span>Reachability</span><b id="reach">&mdash;</b></div>
+      <div class="stat"><span>Time since t=0</span><b id="clock">&mdash;</b></div>
 
       <div class="btns" style="margin-top:8px;">
         <button id="btnRandom" class="go">&#8635; New target</button>
@@ -170,22 +194,6 @@
         <button id="btnOpt">&#127919; Auto-solve</button>
       </div>
 
-      <div class="grp">Telemetry</div>
-      <div class="stat" id="liveMiss"><span>Ground distance to target</span><b>&mdash;</b></div>
-      <div class="stat" id="bestMiss"><span>Closest approach so far</span><b>&mdash;</b></div>
-      <div class="stat"><span>Reachability</span><b id="reach">&mdash;</b></div>
-      <div class="stat"><span>Time since t=0</span><b id="clock">&mdash;</b></div>
-
-      <div class="grp">Views (toggle)</div>
-      <div class="btns">
-        <button class="vt" data-v="ts" class="active">Time</button>
-        <button class="vt" data-v="gt" class="active">Track</button>
-        <button class="vt" data-v="gl" class="active">Globe</button>
-      </div>
-      <div class="btns" style="margin-top:6px;">
-        <button id="btnResetView">&#8634; Reset globe view</button>
-      </div>
-
       <div class="grp">Legend</div>
       <div class="legend">
         <div><i style="background:#41d6ff"></i>ground track (past&rarr;future)</div>
@@ -195,12 +203,6 @@
         <div><i style="background:#39e08a"></i>win: &lt; 50 km miss</div>
       </div>
 
-      <div class="grp">Mission</div>
-      <div class="legend">
-        Circular repeat-ground-track orbit &middot; 15 rev / sidereal day &middot;
-        h &asymp; 561 km. One orbit shifts the ground track <b style="color:var(--accent2)">24&deg;</b> west each pass.
-        Adjust i, &Omega;, M&#8320; so a pass crosses the pink target.
-      </div>
     </div>
   </aside>
 
@@ -523,6 +525,16 @@ function drawTimeSeries(){
   frame(hLat,"LATITUDE",[-90,-45,0,45,90],v=>(v+90)/180);
   frame(hLon,"LONGITUDE",[-180,-90,0,90,180],v=>(v+180)/360);
 
+  // vertical grid times (orbit marks)
+  c.fillStyle="#5f6d90";c.font="8.5px ui-monospace,monospace";c.textAlign="center";
+  for(let k=-2;k<=2;k++){
+    const tt=state.t+k*PERIOD/2;
+    if(tt<tStart||tt>tEnd)continue;
+    const x=hLat.x0+hLat.w*(tt-tStart)/(tEnd-tStart);
+    c.strokeStyle="#101828";c.beginPath();c.moveTo(x,hLat.y0);c.lineTo(x,hLon.y0+hLon.h);c.stroke();
+    c.fillStyle="#4c5a7c";c.fillText((k/2).toFixed(1)+"T",x,hLon.y0+hLon.h+12);
+  }
+
   // target lines
   function targetLine(h,yFor,val,col){
     const y=h.y0+h.h*(1-yFor(val));
@@ -563,16 +575,6 @@ function drawTimeSeries(){
   }
   marker(hLat,s.lat,true);
   marker(hLon,s.lon,false);
-
-  // vertical grid times (orbit marks)
-  c.fillStyle="#5f6d90";c.font="8.5px ui-monospace,monospace";c.textAlign="center";
-  for(let k=-2;k<=2;k++){
-    const tt=state.t+k*PERIOD/2;
-    if(tt<tStart||tt>tEnd)continue;
-    const x=hLat.x0+hLat.w*(tt-tStart)/(tEnd-tStart);
-    c.strokeStyle="#101828";c.beginPath();c.moveTo(x,hLat.y0);c.lineTo(x,hLon.y0+hLon.h);c.stroke();
-    c.fillStyle="#4c5a7c";c.fillText((k/2).toFixed(1)+"T",x,hLon.y0+hLon.h+12);
-  }
 }
 
 /* =========================================================================
