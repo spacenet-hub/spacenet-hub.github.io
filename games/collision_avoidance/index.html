@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constellation Architect &mdash; LEO Collision Avoidance</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <!-- ================= FULL-SCREEN ORBITAL VIEW ================= -->
+  <canvas id="scene"></canvas>
+
+  <!-- ================= TOP BAR ================= -->
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-mark">&#9672;</div>
+      <div class="brand-text">
+        <h1>Constellation Architect</h1>
+        <p>Design a dense LEO constellation that is physically feasible</p>
+      </div>
+    </div>
+
+    <div class="clock-block">
+      <div class="clock-label">Simulation time</div>
+      <div id="clock" class="clock">T+ 00:00:00</div>
+      <div class="clock-sub"><span id="speedLabel">300&times;</span> &middot; 24 h repeat</div>
+    </div>
+
+    <div class="time-controls">
+      <button id="btnPause" class="icon-btn" title="Pause simulation" aria-label="Pause simulation">&#10074;&#10074;</button>
+      <div class="seg" id="speedGroup">
+        <button class="spd" data-speed="60">60&times;</button>
+        <button class="spd active" data-speed="300">300&times;</button>
+        <button class="spd" data-speed="1000">1000&times;</button>
+      </div>
+      <button id="btnUI" class="icon-btn ui-toggle" title="Toggle panels" aria-label="Toggle panels">&#9776;</button>
+    </div>
+  </header>
+
+  <!-- ================= LEFT: MISSION + DEPLOYMENT ================= -->
+  <aside id="left" class="panel">
+    <div class="scroll">
+      <section class="block mission-block">
+        <div class="block-head">
+          <h2>Mission</h2>
+          <span class="tag">LEO &middot; 550 km</span>
+        </div>
+        <div class="brief">
+          Grow the constellation one orbital plane at a time. Every deployment is
+          propagated for 24 hours; if any two satellites pass within 10&nbsp;km,
+          the plane is rejected.
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat">
+            <span>Score</span>
+            <b id="score">0</b>
+          </div>
+          <div class="stat">
+            <span>Satellites</span>
+            <b><span id="satCount">0</span><small id="satCap">/ 120</small></b>
+          </div>
+          <div class="stat">
+            <span>Planes</span>
+            <b id="planeCount">0</b>
+          </div>
+          <div class="stat">
+            <span>Committed clearance</span>
+            <b id="committedMin">&mdash;</b>
+          </div>
+        </div>
+        <div class="live-line">
+          <span>Instantaneous minimum</span>
+          <b id="liveMin">&mdash;</b>
+        </div>
+      </section>
+
+      <section class="block">
+        <div class="block-head">
+          <h2>Deployment</h2>
+          <span class="tag" id="previewTag">NEW PLANE</span>
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-row">
+            <label for="inc">Inclination <em>i</em></label>
+            <output id="incOut" for="inc">53.0&deg;</output>
+          </div>
+          <input id="inc" type="range" min="0" max="98" step="0.5" value="53">
+          <div class="ticks"><span>0&deg;</span><span>equatorial</span><span>98&deg;</span></div>
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-row">
+            <label for="raan">RAAN <em>&Omega;</em></label>
+            <output id="raanOut" for="raan">120&deg;</output>
+          </div>
+          <input id="raan" type="range" min="0" max="360" step="1" value="120">
+          <div class="ticks"><span>0&deg;</span><span>ascending node</span><span>360&deg;</span></div>
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-row">
+            <label for="count">Satellites per plane</label>
+            <output id="countOut" for="count">6</output>
+          </div>
+          <input id="count" type="range" min="1" max="24" step="1" value="6">
+          <div class="ticks"><span>1</span><span>evenly spaced</span><span>24</span></div>
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-row">
+            <label for="phase">Phase offset <em>&phi;</em></label>
+            <output id="phaseOut" for="phase">0&deg;</output>
+          </div>
+          <input id="phase" type="range" min="0" max="360" step="1" value="0">
+          <div class="ticks"><span>0&deg;</span><span>mean anomaly of first sat</span><span>360&deg;</span></div>
+        </div>
+
+        <button id="deploy" class="btn primary deploy-btn">
+          <span class="btn-main">Deploy plane</span>
+          <span class="btn-sub" id="deploySub">+6 satellites</span>
+        </button>
+        <div id="capacityNote" class="micro">Capacity 120 satellites. Unsafe planes are never committed.</div>
+      </section>
+
+      <section class="block">
+        <div class="block-head">
+          <h2>Simulation</h2>
+          <span class="tag" id="liveTag">LIVE</span>
+        </div>
+        <div class="btn-row">
+          <button id="btnResetView" class="btn ghost">Reset view</button>
+          <button id="btnReset" class="btn danger-ghost">Reset mission</button>
+        </div>
+        <div class="legend">
+          <div><i class="dot safe"></i>Safe &mdash; clearance &gt; 10 km</div>
+          <div><i class="dot warn"></i>Danger &mdash; 1&ndash;10 km</div>
+          <div><i class="dot danger"></i>Collision &mdash; &lt; 1 km</div>
+          <div><i class="line"></i>Orbital plane at 550 km altitude</div>
+        </div>
+        <div class="micro">
+          Circular Keplerian orbits &middot; &mu; = 398,600.4418 km&sup3;/s&sup2; &middot;
+          period 95.5 min &middot; n = &radic;(&mu;/a&sup3;)
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- ================= RIGHT: ANALYSIS + LOG ================= -->
+  <aside id="right" class="panel">
+    <div class="scroll">
+      <section class="block">
+        <div class="block-head">
+          <h2>Conjunction analysis</h2>
+          <span class="tag" id="analysisMode">CURRENT</span>
+        </div>
+
+        <div id="statusCard" class="status-card safe">
+          <div class="status-top">
+            <span class="status-dot"></span>
+            <span id="statusWord" class="status-word">SAFE</span>
+            <span id="statusSep" class="status-sep">&mdash;</span>
+          </div>
+          <div id="statusExplain" class="status-explain">Initialising constellation analysis&hellip;</div>
+        </div>
+
+        <div class="kv-grid">
+          <div><span>Closest approach</span><b id="aMin">&mdash;</b></div>
+          <div><span>Time of closest pass</span><b id="aTime">&mdash;</b></div>
+          <div><span>Closest pair</span><b id="aPair">&mdash;</b></div>
+          <div><span>Analysis</span><b id="aEpochs">&mdash;</b></div>
+        </div>
+
+        <canvas id="profile" class="profile" title="24-hour clearance profile sampled every 300 s. Brief conjunctions are verified at 10 s and refined. Click to scrub time."></canvas>
+        <div class="profile-caption">
+          <span>24 h clearance profile &middot; log scale</span>
+          <span id="profileCursor">T+00:00</span>
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+
+        <button id="btnViewClose" class="btn ghost wide">&#9678; View closest pass</button>
+      </section>
+
+      <section class="block log-block">
+        <div class="block-head">
+          <h2>Mission log</h2>
+          <span class="tag" id="logCount">0</span>
+        </div>
+        <div id="log" class="log"></div>
+      </section>
+    </div>
+  </aside>
+
+  <div id="hint">Drag to orbit the globe &middot; scroll to zoom &middot; double-click to reset</div>
+  <div id="toast"></div>
+  <div id="tooltip" class="tooltip"></div>
+</div>
+
+<script src="scripts.js"></script>
+</body>
+</html>
