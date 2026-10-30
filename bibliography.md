@@ -13,9 +13,19 @@ scholar:
   # How each entry is drawn. jekyll-scholar provides: reference (the formatted
   # APA citation, wrapped in <span id="KEY">), key, type, and entry (all fields).
   bibliography_template: |
-    {%- assign abstract = entry.abstract | strip -%}
-    {%- assign note = entry.annote | strip -%}
-    {%- assign weblink = entry.url | default: entry.howpublished | strip -%}
+    {%- comment -%} First web address in url, howpublished or note, without any \url{...} wrapper. {%- endcomment -%}
+    {%- assign link_text = entry.url | append: " " | append: entry.howpublished | append: " " | append: entry.note -%}
+    {%- assign weblink = "" -%}
+    {%- if link_text contains "http" -%}
+      {%- assign link_prefix = link_text | split: "http" | first -%}
+      {%- assign weblink = link_text | remove_first: link_prefix | split: " " | first | split: "}" | first | strip -%}
+    {%- endif -%}
+    {%- comment -%} "Copy link" copies the DOI link if there is one, otherwise the web address. {%- endcomment -%}
+    {%- if entry.doi and entry.doi != "" -%}
+      {%- assign copylink = "https://doi.org/" | append: entry.doi -%}
+    {%- else -%}
+      {%- assign copylink = weblink -%}
+    {%- endif -%}
     {%- if entry.author_array -%}
       {%- assign sortname = entry.author_array.first.last -%}
     {%- else -%}
@@ -33,26 +43,15 @@ scholar:
     <details class="bib-entry" data-key="{{ key }}" data-year="{{ entry.year }}" data-sort-name="{{ sortname | escape }}" data-authors="{{ entry.author | escape }}" data-title="{{ entry.title | escape }}">
     <summary>
     <span class="bib-ref">{{ reference }}</span>
-    <span class="bib-tags"><span class="bib-tag">{{ kind }}</span>{% if abstract != "" %}<span class="bib-tag bib-tag-abs">Abstract</span>{% elsif note != "" %}<span class="bib-tag bib-tag-abs">Summary</span>{% endif %}</span>
+    <span class="bib-tags"><span class="bib-tag">{{ kind }}</span></span>
     </summary>
     <div class="bib-body">
-    {%- if abstract != "" %}
-    <p class="bib-label">Abstract</p>
-    <p class="bib-abstract">{{ abstract | escape }}</p>
-    {%- endif %}
-    {%- if note != "" %}
-    <p class="bib-label">{% if abstract != "" %}Note{% else %}Summary{% endif %}</p>
-    <p class="bib-note">{{ note | escape }}</p>
-    {%- endif %}
-    {%- if abstract == "" and note == "" %}
-    <p class="bib-empty">No abstract yet.</p>
-    {%- endif %}
     <p class="bib-actions">
     {%- if entry.doi and entry.doi != "" %}<a class="bib-btn" href="https://doi.org/{{ entry.doi }}" target="_blank" rel="noopener">DOI</a>{% endif %}
-    {%- if weblink contains "://" %}<a class="bib-btn" href="{{ weblink }}" target="_blank" rel="noopener">{% if type == "misc" %}Website{% else %}Link{% endif %}</a>{% endif %}
+    {%- if weblink != "" %}<a class="bib-btn" href="{{ weblink }}" target="_blank" rel="noopener">{% if type == "misc" %}Website{% else %}Link{% endif %}</a>{% endif %}
     <button type="button" class="bib-btn" data-bib-action="bibtex" aria-expanded="false">BibTeX</button>
     <button type="button" class="bib-btn" data-bib-action="copy-bibtex">Copy BibTeX</button>
-    <button type="button" class="bib-btn" data-bib-action="copy-link">Copy link</button>
+    {%- if copylink != "" %}<button type="button" class="bib-btn" data-bib-action="copy-link" data-link="{{ copylink }}">Copy link</button>{% endif %}
     </p>
     <pre class="bib-bibtex" hidden><code>{{ entry.bibtex | escape }}</code></pre>
     </div>
@@ -60,6 +59,13 @@ scholar:
 ---
 
 <!-- Big thanks to Gemma Danks: https://open-research.gemmadanks.com/tutorials/how-to-use-jekyll-scholar-with-github-pages/ -->
+
+<!--
+  Sections come from _data/bibliography.yml; each entry's section is the
+  `category` field in bibliography/references.bib. The entry template is in
+  the front matter above; styles and behaviour are in
+  assets/css/bibliography.css and assets/js/bibliography.js.
+-->
 
 <link rel="stylesheet" href="{{ '/assets/css/bibliography.css' | relative_url }}">
 
@@ -70,7 +76,7 @@ scholar:
 <header class="bib-head">
 <h1>References</h1>
 <p>Papers, reports, and tools cited across this site, grouped by topic.
-Click any entry to read its abstract or summary, and use the search box to look across authors, and titles.
+Click any entry for its links and BibTeX, and use the search box to look across authors and titles.
 The full list is also available as <a href="https://github.com/SpaceNet-CoP/spacenet-cop.github.io/raw/refs/heads/main/bibliography/references.bib">BibTeX</a>.</p>
 </header>
 
@@ -85,7 +91,6 @@ The full list is also available as <a href="https://github.com/SpaceNet-CoP/spac
 <button type="button" data-scope="all" aria-pressed="true">All</button>
 <button type="button" data-scope="author" aria-pressed="false">Author</button>
 <button type="button" data-scope="title" aria-pressed="false">Title</button>
-<!-- <button type="button" data-scope="abstract" aria-pressed="false">Abstract</button> -->
 </div>
 </div>
 <div class="bib-meta">

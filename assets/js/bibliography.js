@@ -52,12 +52,13 @@
     }
     nodes.forEach(function (n) {
       var text = n.nodeValue;
-      var re = /https?:\/\/[^\s<>"]+/g;
+      var re = /(?:\\?url\{?)?(https?:\/\/[^\s<>"{}]+)\}?/g;
       var frag = document.createDocumentFragment();
       var last = 0;
       var m;
       while ((m = re.exec(text))) {
-        var url = m[0].replace(/[.,;:)\]]+$/, "");
+        var url = m[1].replace(/[.,;:)\]]+$/, "");
+        var start = m.index + m[0].indexOf(m[1]);
         frag.appendChild(document.createTextNode(text.slice(last, m.index)));
         var a = document.createElement("a");
         a.href = url;
@@ -65,7 +66,8 @@
         a.target = "_blank";
         a.rel = "noopener";
         frag.appendChild(a);
-        last = m.index + url.length;
+        last = start + url.length;
+        if (text.charAt(last) === "}") last++;
         re.lastIndex = last;
       }
       frag.appendChild(document.createTextNode(text.slice(last)));
@@ -77,12 +79,7 @@
 
   var entries = Array.prototype.slice.call(app.querySelectorAll(".bib-entry")).map(function (el, i) {
     var d = el.dataset;
-    var abstractText = (textOf(el, ".bib-abstract") + " " + textOf(el, ".bib-note")).trim();
     var refText = textOf(el, ".bib-ref");
-    var snippet = document.createElement("span");
-    snippet.className = "bib-snippet";
-    snippet.hidden = true;
-    el.querySelector("summary").insertBefore(snippet, el.querySelector(".bib-tags"));
     return {
       el: el,
       li: el.parentNode,
@@ -91,13 +88,10 @@
       year: parseInt(d.year, 10) || 0,
       sortName: fold(d.sortName || "").replace(/^[^a-z0-9]+/, ""),
       order: i,
-      abstractRaw: abstractText,
-      snippet: snippet,
       fields: {
         title: fold(d.title),
         author: fold(d.authors),
-        abstract: fold(abstractText),
-        all: fold([refText, d.authors, d.title, abstractText, d.key].join(" \u0000 "))
+        all: fold([refText, d.authors, d.title, d.key].join(" \u0000 "))
       }
     };
   });
@@ -117,22 +111,6 @@
     return out;
   }
 
-  function makeSnippet(e, terms) {
-    var folded = e.fields.abstract;
-    var best = -1;
-    var len = 0;
-    terms.forEach(function (t) {
-      var i = folded.indexOf(t);
-      if (i !== -1 && (best === -1 || i < best)) { best = i; len = t.length; }
-    });
-    if (best === -1) return "";
-    var raw = e.abstractRaw;
-    var start = Math.max(0, best - 70);
-    var end = Math.min(raw.length, best + len + 110);
-    if (start > 0) { var sp = raw.indexOf(" ", start); if (sp !== -1 && sp < best) start = sp + 1; }
-    if (end < raw.length) { var ep = raw.lastIndexOf(" ", end); if (ep > best + len) end = ep; }
-    return (start > 0 ? "…" : "") + raw.slice(start, end) + (end < raw.length ? "…" : "");
-  }
 
   function addRanges(root, terms, ranges) {
     if (!root) return;
@@ -158,16 +136,8 @@
     CSS.highlights.delete("bib-match");
     if (!terms.length) return;
     var ranges = [];
-    var inRef = scope !== "abstract";
-    var inAbstract = scope === "all" || scope === "abstract";
     entries.forEach(function (e) {
-      if (e.li.hidden) return;
-      if (inRef) addRanges(e.el.querySelector(".bib-ref"), terms, ranges);
-      if (inAbstract) {
-        addRanges(e.el.querySelector(".bib-abstract"), terms, ranges);
-        addRanges(e.el.querySelector(".bib-note"), terms, ranges);
-        if (!e.snippet.hidden) addRanges(e.snippet, terms, ranges);
-      }
+      if (!e.li.hidden) addRanges(e.el.querySelector(".bib-ref"), terms, ranges);
     });
     var h = new Highlight();
     ranges.forEach(function (r) { h.add(r); });
@@ -184,10 +154,6 @@
       var ok = terms.every(function (t) { return hay.indexOf(t) !== -1; });
       e.li.hidden = !ok;
       if (ok) shown++;
-
-      var snip = ok && terms.length && scope !== "title" && scope !== "author" ? makeSnippet(e, terms) : "";
-      e.snippet.textContent = snip;
-      e.snippet.hidden = !snip;
     });
 
     sections.forEach(function (s) {
@@ -339,7 +305,7 @@
         copyText(pre.textContent.trim(), btn);
         break;
       case "copy-link":
-        copyText(window.location.href.split("#")[0].split("?")[0] + "#" + entryEl.dataset.key, btn);
+        copyText(btn.getAttribute("data-link"), btn);
         break;
     }
   });
@@ -381,7 +347,7 @@
     var params = new URL(window.location.href).searchParams;
     if (params.get("q")) input.value = params.get("q");
     var initialScope = params.get("in");
-    if (initialScope && ["all", "author", "title", "abstract"].indexOf(initialScope) !== -1) setScope(initialScope);
+    if (initialScope && ["all", "author", "title"].indexOf(initialScope) !== -1) setScope(initialScope);
   } catch (err) { /* ignore */ }
 
   apply();
