@@ -164,11 +164,13 @@ function j2Rates(incDeg) {
   const cosI2 = cosI * cosI;
   const fac = J2 * (R_E / A_SMA) * (R_E / A_SMA);
 
-  // RAAN is singular at i = 0: the node is undefined, so a finite nodal
-  // rate would incorrectly rotate an equatorial orbit's phase. Fade the
-  // nodal rate to zero over the first 2 degrees. The physical plane change
-  // suppressed by this is O(sin i * RAANdot), below 0.04 deg/day.
-  const s = clamp(incDeg / 2, 0, 1);
+  // RAAN is singular at i = 0 and i = 180: the node is undefined in an
+  // equatorial plane, so a finite nodal rate would incorrectly rotate the
+  // orbit's phase. Fade the nodal rate to zero within 2 degrees of either
+  // singularity. The physical plane change suppressed is O(sin i * RAANdot),
+  // peaking below about 0.07 deg/day near either singularity.
+  const nodeAngle = Math.min(incDeg, 180 - incDeg);
+  const s = clamp(nodeAngle / 2, 0, 1);
   const nodeScale = s * s * (3 - 2 * s);
 
   return {
@@ -579,6 +581,16 @@ function minPhaseGap(planeA, planeB) {
   return min;
 }
 
+/** Near-equatorial planes have a degenerate node at i = 0 or i = 180. */
+function isNearEquatorial(inc) {
+  return inc < 0.6 || inc > 179.4;
+}
+
+/** Near-polar planes pass close to the poles, where RAAN cannot separate them. */
+function isNearPolar(inc) {
+  return Math.abs(inc - 90) <= 5;
+}
+
 /** Explain the geometry between the new plane and the closest existing plane. */
 function geometryNote(newPlane, oldPlane) {
   if (newPlane.id === oldPlane.id) {
@@ -596,7 +608,8 @@ function geometryNote(newPlane, oldPlane) {
 
   const di = Math.abs(newPlane.inc - oldPlane.inc);
   const dro = angleDiff(newPlane.raan, oldPlane.raan);
-  const bothEquatorial = newPlane.inc < 0.6 && oldPlane.inc < 0.6;
+  const bothEquatorial = isNearEquatorial(newPlane.inc) && isNearEquatorial(oldPlane.inc);
+  const oppositeDirections = (newPlane.inc < 90) !== (oldPlane.inc < 90);
   const coplanar = (di < 0.75 && dro < 0.75) || bothEquatorial;
 
   const parts = [];
@@ -605,11 +618,26 @@ function geometryNote(newPlane, oldPlane) {
     fmtDeg(di) + "</b> and <b>&Delta;&Omega; " + fmtDeg(dro) + "</b>.");
 
   if (coplanar) {
-    if (bothEquatorial && dro > 0.75) {
-      parts.push("Both planes are equatorial: at <b>i = 0&deg;</b> RAAN is degenerate, " +
-        "so every equatorial plane is the same ring. A change in &Omega; is just a " +
-        "phase shift along that ring; separation is controlled by where the satellites " +
-        "sit in phase.");
+    if (bothEquatorial) {
+      if (oppositeDirections) {
+        parts.push("Both planes are equatorial but travel in opposite directions. " +
+          "At <b>i = 0&deg; or 180&deg;</b> RAAN is degenerate, so &Omega; only shifts " +
+          "the phase along the same ring; the satellites meet twice per orbit, and " +
+          "separation depends on phase and arrival time rather than a fixed chord.");
+      } else if (dro > 0.75) {
+        const eq = newPlane.inc > 90 ? "180&deg;" : "0&deg;";
+        parts.push("Both planes are equatorial: at <b>i = " + eq + "</b> RAAN is " +
+          "degenerate, so every equatorial plane is the same ring. A change in &Omega; " +
+          "is just a phase shift along that ring; separation is controlled by where the " +
+          "satellites sit in phase.");
+      } else {
+        const gap = minPhaseGap(newPlane, oldPlane);
+        const chord = 2 * A_SMA * Math.sin(gap * D2R / 2);
+        parts.push("The planes are effectively coplanar, so both constellations share " +
+          "the same ring. Separation is controlled entirely by phase: the nearest pair " +
+          "is <b>" + fmtDeg(gap) + "</b> apart in mean anomaly, a chord of <b>" +
+          fmtKm(chord) + "</b>.");
+      }
     } else {
       const gap = minPhaseGap(newPlane, oldPlane);
       const chord = 2 * A_SMA * Math.sin(gap * D2R / 2);
@@ -636,21 +664,32 @@ function geometryNote(newPlane, oldPlane) {
       "where the circular paths cross and both satellites arrive at nearly the same time.");
   }
 
-  if (newPlane.inc > 85 || oldPlane.inc > 85) {
-    parts.push(newPlane.inc > 85 && oldPlane.inc > 85
-      ? "Both are near-polar: every high-inclination plane funnels through the polar " +
+  const newPolar = isNearPolar(newPlane.inc);
+  const oldPolar = isNearPolar(oldPlane.inc);
+  if (newPolar || oldPolar) {
+    parts.push(newPolar && oldPolar
+      ? "Both are near-polar: every near-polar plane funnels through the polar " +
         "regions, so a RAAN difference does not prevent close passes near the poles."
-      : "One plane is near-polar: high-inclination orbits funnel through the polar " +
-        "regions, where crossings are harder to separate with RAAN alone.");
+      : "One plane is near-polar: its orbit funnels through the polar regions, where " +
+        "crossings are harder to separate with RAAN alone.");
   }
 
   // J2 nodal precession scales with cos(i), so planes at different
   // inclinations shear apart over the 24 hour screen.
+  const driftNew = newPlane.raanDot * R2D * DAY;
+  const driftOld = oldPlane.raanDot * R2D * DAY;
+  const nodeFixed = Math.abs(driftNew) < 0.005 && Math.abs(driftOld) < 0.005;
   if (di > 0.5) {
-    parts.push("J2 nodal precession is inclination-dependent: <b>" + newPlane.label +
-      "</b> drifts <b>" + fmtDrift(newPlane.raanDot) + "</b> while <b>" +
-      oldPlane.label + "</b> drifts <b>" + fmtDrift(oldPlane.raanDot) +
-      "</b>, so &Delta;&Omega; changes across the day and the crossing points move.");
+    if (nodeFixed) {
+      parts.push("Both planes are (near-)equatorial, where the node is degenerate; the " +
+        "model suppresses nodal drift, so their relative geometry is set by phase and, " +
+        "if they move in opposite directions, by the twice-per-orbit crossings.");
+    } else {
+      parts.push("J2 nodal precession is inclination-dependent: <b>" + newPlane.label +
+        "</b> drifts <b>" + fmtDrift(newPlane.raanDot) + "</b> while <b>" +
+        oldPlane.label + "</b> drifts <b>" + fmtDrift(oldPlane.raanDot) +
+        "</b>, so &Delta;&Omega; changes across the day and the crossing points move.");
+    }
   } else {
     parts.push("Both planes have nearly the same inclination, so J2 precesses them at " +
       "almost the same rate; their relative geometry stays close to fixed over the day.");
