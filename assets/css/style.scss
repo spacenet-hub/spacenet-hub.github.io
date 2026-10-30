@@ -82,3 +82,8 @@ body {
 .content-block.breakable li {
     break-inside: avoid;
 }
+
+#project_title a {
+    color: inherit;
+    text-decoration: none;
+}
