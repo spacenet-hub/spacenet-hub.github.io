@@ -70,8 +70,7 @@ scholar:
 <header class="bib-head">
 <h1>References</h1>
 <p>Papers, reports, and tools cited across this site, grouped by topic.
-Click any entry to read its abstract or summary, and use the search box to look across authors, titles, and abstracts.
-Entries marked <em>Summary</em> were written for this site rather than by the authors.
+Click any entry to read its abstract or summary, and use the search box to look across authors, and titles.
 The full list is also available as <a href="https://github.com/SpaceNet-CoP/spacenet-cop.github.io/raw/refs/heads/main/bibliography/references.bib">BibTeX</a>.</p>
 </header>
 
@@ -80,7 +79,7 @@ The full list is also available as <a href="https://github.com/SpaceNet-CoP/spac
 <label class="bib-sr-only" for="bib-search">Search the bibliography</label>
 <div class="bib-search-wrap">
 <svg class="bib-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4.5 4.5"/></svg>
-<input id="bib-search" type="search" placeholder="Search authors, titles, abstracts" autocomplete="off" spellcheck="false">
+<input id="bib-search" type="search" placeholder="Search" autocomplete="off" spellcheck="false">
 </div>
 <div class="bib-scope" role="group" aria-label="Search in">
 <button type="button" data-scope="all" aria-pressed="true">All</button>
