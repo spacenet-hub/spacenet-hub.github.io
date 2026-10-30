@@ -13,3 +13,8 @@ scholar:
   bibliography: references.bib
 
   relative: "/bibliography.html"
+
+  bibliography_template: bib-entry
+  sort_by: year,title
+  order: descending,ascending
+  bibtex_skip_fields: [abstract, annote, category, month_numeric]

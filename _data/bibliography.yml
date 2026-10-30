@@ -1,0 +1,56 @@
+# Sections of the bibliography page, in display order.
+#
+# Every entry in bibliography/references.bib should have a `category` field
+# whose value matches one of the `id`s below, e.g.
+#
+#   @article{kessler1978collision,
+#     ...
+#     category = {stability},
+#   }
+#
+# Entries with a missing or unknown category still appear, under "Other".
+#
+#   id         value used in the .bib `category` field (one word, no spaces)
+#   title      section heading
+#   blurb      one-line description shown under the heading
+#   principle  (optional) related principle page, linked from the heading
+
+- id: data
+  title: Data sources and tools
+  blurb: Catalogs, environment models, and software for propagating orbits and simulating networks.
+
+- id: design
+  title: Constellation design
+  blurb: How many satellites, in which orbits, and the trade-offs between coverage, survivability, and cost.
+
+- id: environment
+  title: Environmental impacts
+  blurb: Effects of large constellations on the upper atmosphere and astronomy, and how they are regulated.
+
+- id: simulators
+  title: Simulators
+  blurb: Simulation and emulation frameworks for satellite network research.
+
+- id: dynamics
+  title: Orbital dynamics
+  blurb: Constellation geometry, orbit propagation (SGP4), and orbital lifetime and decay.
+  principle: /principles/dynamics.html
+
+- id: radiation
+  title: Radiation environment
+  blurb: The Van Allen belts, the South Atlantic Anomaly, and protecting electronics from radiation.
+  principle: /principles/hazards.html
+
+- id: stability
+  title: Stability of orbital systems
+  blurb: Debris growth, collision risk, conjunction assessment, and how much LEO can hold.
+  principle: /principles/collisions.html
+
+- id: isls
+  title: Inter-satellite links (ISLs)
+  blurb: Links between satellites, and networks designed without them.
+  principle: /principles/isls.html
+
+- id: general
+  title: General reference
+  blurb: Broad primers on large constellations in low Earth orbit.
