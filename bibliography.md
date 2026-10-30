@@ -86,7 +86,7 @@ The full list is also available as <a href="https://github.com/SpaceNet-CoP/spac
 <button type="button" data-scope="all" aria-pressed="true">All</button>
 <button type="button" data-scope="author" aria-pressed="false">Author</button>
 <button type="button" data-scope="title" aria-pressed="false">Title</button>
-<button type="button" data-scope="abstract" aria-pressed="false">Abstract</button>
+<!-- <button type="button" data-scope="abstract" aria-pressed="false">Abstract</button> -->
 </div>
 </div>
 <div class="bib-meta">
