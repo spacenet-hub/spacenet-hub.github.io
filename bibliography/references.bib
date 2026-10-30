@@ -6,458 +6,577 @@ References
 % Data sources and tools
 
 @misc{stela,
-  title={ {STELA} | Connect by {CNES}},
-  howpublished = {\url{https://www.connectbycnes.fr/en/stela}},
-  note = {Accessed: 2024-12},
-  category = {data}
+	title={ {STELA} | Connect by {CNES}},
+	howpublished = {\url{https://www.connectbycnes.fr/en/stela}},
+	note = {Accessed: 2024-12},
+	category = {data},
 }
 
 @misc{celestrak,
-  title={ {CelesTrak}},
-  howpublished={\url{https://celestrak.org/}},
-  note={Accessed: 2024-12},
-  category = {data}
+	title={ {CelesTrak}},
+	howpublished={\url{https://celestrak.org/}},
+	note={Accessed: 2024-12},
+	category = {data},
 }
 
 @misc{cirbeData,
-  title={Data Products - {CIRBE}},
-  howpublished={\url{https://lasp.colorado.edu/cirbe/data-products/}},
-  note={Accessed 2025-05-29},
-  category = {data}
+	title={Data Products - {CIRBE}},
+	howpublished={\url{https://lasp.colorado.edu/cirbe/data-products/}},
+	note={Accessed 2025-05-29},
+	category = {data},
 }
 
 @misc{sns3,
-  title={ {SNS3}},
-  howpublished={\url{https://www.sns3.org/index.html}},
-  note={Accessed 2025-05-29},
-  category = {data}
+	title={ {SNS3}},
+	howpublished={\url{https://www.sns3.org/index.html}},
+	note={Accessed 2025-05-29},
+	category = {data},
 }
 
 @misc{irene,
-  title={ {IRENE}-{AE9/AP9/SPM} Home},
-  howpublished={\url{https://www.vdl.afrl.af.mil/programs/ae9ap9/}},
-  author={ {Air Force Research Laboratory (AFRL)}},
-  note={Accessed: 2025-07},
-  category = {data}
+	title={ {IRENE}-{AE9/AP9/SPM} Home},
+	howpublished={\url{https://www.vdl.afrl.af.mil/programs/ae9ap9/}},
+	author={ {Air Force Research Laboratory (AFRL)}},
+	note={Accessed: 2025-07},
+	category = {data},
 }
 
 
 % Constellation design
 
 @inproceedings{misa2025sustainability,
-  title={ {Sustainability or Survivability? Eliminating the Need to Choose in LEO Satellite Constellations}},
-  author={Misa, Chris and Durairajan, Ramakrishnan},
-  booktitle={Proceedings of the 24th ACM Workshop on Hot Topics in Networks},
-  pages={123--130},
-  year={2025},
-  doi = {10.1145/3772356.3772408},
-  category = {design}
+	title={ {Sustainability or Survivability? Eliminating the Need to Choose in LEO Satellite Constellations}},
+	author={Misa, Chris and Durairajan, Ramakrishnan},
+	booktitle={Proceedings of the 24th ACM Workshop on Hot Topics in Networks},
+	pages={123--130},
+	year={2025},
+	doi = {10.1145/3772356.3772408},
+	category = {design},
+	abstract = {LEO Satellite Networks (LSNs) are revolutionizing global connectivity, but their reliance on tens of thousands of satellites raises pressing concerns over sustainability and survivability. In this work, we argue that the inefficiencies in present-day LSN designs stem from ignoring the strong spatiotemporal structure of Internet traffic demand (which impacts sustainability) and the physical realities of the near-Earth space environment (which affects survivability). We propose a novel design approach based on sun-synchronous (SS) orbits called SS-plane, which aligns satellite coverage with the Earth's diurnal cycle. We demonstrate that SS-plane constellations can reduce the number of satellites required by up to an order of magnitude and cut radiation exposure by ~23% compared to traditional Walker-delta constellations. These findings suggest a paradigm shift in LSN research from large, disposable megaconstellations to more sustainable, targeted LEO constellations.}
 }
 
 @inproceedings{li2025small,
-  title={ {Small-scale LEO Satellite Networking for Global-scale Demands}},
-  author={Li, Yuanjie and Chen, Yimei and Yang, Jiabo and Zhang, Jinyao and Sun, Bowen and Liu, Lixin and Li, Hewu and Wu, Jianping and Lai, Zeqi and Wu, Qian and others},
-  booktitle={Proceedings of the ACM SIGCOMM 2025 Conference},
-  pages={917--931},
-  year={2025},
-  url = {https://tinyleo-toolkit.github.io/TinyLEO/},
-  category = {design}
+	title={ {Small-scale LEO Satellite Networking for Global-scale Demands}},
+	author={Li, Yuanjie and Chen, Yimei and Yang, Jiabo and Zhang, Jinyao and Sun, Bowen and Liu, Lixin and Li, Hewu and Wu, Jianping and Lai, Zeqi and Wu, Qian and others},
+	booktitle={Proceedings of the ACM SIGCOMM 2025 Conference},
+	pages={917--931},
+	year={2025},
+	url = {https://tinyleo-toolkit.github.io/TinyLEO/},
+	category = {design},
+	abstract = {Do we really need 10,000s of Low Earth Orbit (LEO) satellites to meet huge global Internet demands? While proven feasible and valuable, such LEO mega-constellation networks have raised concerns about their prohibitive capital expenditures, market monopoly, and unsustainable use of space. Instead, our analysis reveals that most of their satellites can be wasted due to their mismatch with physically uneven demands. We thus propose TinyLEO, a software-defined solution to shrink LEO network size for enormous global demands via dynamic spatiotemporal supply-demand matching. TinyLEO sparsifies satellite supplies on demand by combining diverse yet sparse orbits, hides complexities of this sparse LEO network via orbital model predictive control, and shifts the responsibility for handling these complexities to its geographic segment anycast for higher network usability, lower resource wastes, faster failovers, simpler satellites, and more flexible network orchestration. We have prototyped TinyLEO as a community toolkit for open research. Our evaluation using this toolkit shows that TinyLEO can compress the existing LEO mega-constellation network size by 2.0–7.9×, cut control plane costs by 1–3 orders of magnitude, and maintain the same demands and comparable data plane performance.}
 }
 
 @inproceedings{lai2024your,
-  title={Your Mega-Constellations Can Be Slim: A Cost-Effective Approach for Constructing Survivable and Performant LEO Satellite Networks},
-  author={Lai, Zeqi and Wang, Yibo and Li, Hewu and Wu, Qian and Zhang, Qi and Hou, Yunan and Liu, Jun and Li, Yuanjie},
-  booktitle={IEEE INFOCOM 2024-IEEE Conference on Computer Communications},
-  pages={521--530},
-  year={2024},
-  organization={IEEE},
-  url = {https://arxiv.org/abs/2407.03799},
-  category = {design}
+	title={Your Mega-Constellations Can Be Slim: A Cost-Effective Approach for Constructing Survivable and Performant LEO Satellite Networks},
+	author={Lai, Zeqi and Wang, Yibo and Li, Hewu and Wu, Qian and Zhang, Qi and Hou, Yunan and Liu, Jun and Li, Yuanjie},
+	booktitle={IEEE INFOCOM 2024-IEEE Conference on Computer Communications},
+	pages={521--530},
+	year={2024},
+	organization={IEEE},
+	url = {https://arxiv.org/abs/2407.03799},
+	category = {design},
+	abstract = {Recently we have witnessed the active deployment of mega-constellations with hundreds to thousands of low-earth orbit (LEO) satellites, targeting at constructing LEO satellite networks (LSN) to provide ubiquitous Internet services globally. However, while the massive deployment of LEO satellites can improve the network survivability and performance of an LSN, it also involves additional sustainable challenges such as higher deployment cost, risk of satellite conjunction and space debris.In this paper, we investigate an important research problem facing the upcoming satellite Internet: from a network perspective, how many satellites exactly do we need to construct a survivable and performant LSN? To answer this question, we first formulate the survivable and performant LSN design (SPLD) problem, which aims to find the minimum number of needed satellites to construct an LSN that can provide sufficient amount of redundant paths, required link capacity and acceptable latency for traffic carried by the LSN. Second, to efficiently solve the tricky SPLD problem, we propose MegaReduce, a requirement-driven constellation optimization mechanism, which can calculate feasible solutions for SPLD in polynomial time. Finally, we conduct extensive trace-driven simulations to verify MegaReduce’s cost-effectiveness in constructing survivable and performant LSNs on demand, and showcase how MegaReduce can help optimize the incremental deployment and long-term maintenance of future satellite Internet.}
 }
 
 
 % Environmental impacts
 
 @article{ferreira2024potential,
-  title={Potential ozone depletion from satellite demise during atmospheric reentry in the era of mega-constellations},
-  author={Ferreira, Jos{\'e} P and Huang, Ziyu and Nomura, Ken-ichi and Wang, Joseph},
-  journal={Geophysical Research Letters},
-  volume={51},
-  number={11},
-  pages={e2024GL109280},
-  year={2024},
-  publisher={Wiley Online Library},
-  doi = {10.1029/2024GL109280},
-  category = {environment}
+	title={Potential ozone depletion from satellite demise during atmospheric reentry in the era of mega-constellations},
+	author={Ferreira, Jos{\'e} P and Huang, Ziyu and Nomura, Ken-ichi and Wang, Joseph},
+	journal={Geophysical Research Letters},
+	volume={51},
+	number={11},
+	pages={e2024GL109280},
+	year={2024},
+	publisher={Wiley Online Library},
+	doi = {10.1029/2024GL109280},
+	category = {environment},
+	abstract = {Large constellations of small satellites will significantly increase the number of objects orbiting the Earth. Satellites burn up at the end of service life during reentry, generating aluminum oxides as the main byproduct. These are known catalysts for chlorine activation that depletes ozone in the stratosphere. We present the first atomic-scale molecular dynamics simulation study to resolve the oxidation process of the satellite's aluminum structure during mesospheric reentry, and investigate the ozone depletion potential from aluminum oxides. We find that the demise of a typical 250-kg satellite can generate around 30 kg of aluminum oxide nanoparticles, which may endure for decades in the atmosphere. Aluminum oxide compounds generated by the entire population of satellites reentering the atmosphere in 2022 are estimated at around 17 metric tons. Reentry scenarios involving mega-constellations point to over 360 metric tons of aluminum oxide compounds per year, which can lead to significant ozone depletion.}
 }
 
 @article{walker2020impact,
-  title={Impact of satellite constellations on optical astronomy and recommendations toward mitigations},
-  author={Walker, Constance and Hall, Jeffrey and Allen, Lori and Green, Richard and Seitzer, Patrick and Tyson, Tony and Bauer, Amanda and Krafton, Kelsie and Lowenthal, James and Parriott, Joel and others},
-  journal={Bulletin of the American Astronomical Society},
-  volume={52},
-  number={2},
-  year={2020},
-  url = {https://baas.aas.org/pub/2020i0206},
-  category = {environment}
+	title={Impact of satellite constellations on optical astronomy and recommendations toward mitigations},
+	author={Walker, Constance and Hall, Jeffrey and Allen, Lori and Green, Richard and Seitzer, Patrick and Tyson, Tony and Bauer, Amanda and Krafton, Kelsie and Lowenthal, James and Parriott, Joel and others},
+	journal={Bulletin of the American Astronomical Society},
+	volume={52},
+	number={2},
+	year={2020},
+	url = {https://baas.aas.org/pub/2020i0206},
+	category = {environment},
+	abstract = {In May 2019 SpaceX launched its first batch of 60 Starlink communication satellites, which surprised astronomers and laypeople with their appearance in the night sky. Astronomers have only now, a little over a year later, accumulated enough observations of constellation satellites like those being launched by SpaceX and OneWeb, and run computer simulations of their likely impact when fully deployed, to thoroughly understand the magnitude and complexity of the problem. This research informed the discussion at the Satellite Constellations 1 (SATCON1) workshop held virtually 29 June to 2 July 2020 and led to recommendations for observatories and constellation operators. The SATCON1 report concludes that the effects on astronomical research and on the human experience of the night sky range from "negligible" to "extreme."}
 }
 
 @misc{gaoReport,
-  title={Satellite Licensing: {FCC} Should Reexamine Its Environmental Review Process for Large Constellations of Satellites},
-  howpublished={\url{https://www.gao.gov/products/gao-23-105005}},
-  note={Accessed 2025-05-29},
-  category = {environment}
+	title={Satellite Licensing: {FCC} Should Reexamine Its Environmental Review Process for Large Constellations of Satellites},
+	howpublished={\url{https://www.gao.gov/products/gao-23-105005}},
+	note={Accessed 2025-05-29},
+	category = {environment},
 }
 
 @misc{fasArticle,
-  author={Mehlman, Amy and Janka, John P. and Sturza, Mark A.},
-  title={Averting Environmental Risks In The New Space Age},
-  howpublished={\url{https://fas.org/publication/averting-environmental-risks-in-the-new-space-age/}},
-  note={Accessed 2025-05-29},
-  category = {environment}
+	author={Mehlman, Amy and Janka, John P. and Sturza, Mark A.},
+	title={Averting Environmental Risks In The New Space Age},
+	howpublished={\url{https://fas.org/publication/averting-environmental-risks-in-the-new-space-age/}},
+	note={Accessed 2025-05-29},
+	category = {environment},
+	abstract = {We face an existential crisis: Space is at risk of developing the equivalent of the ocean’s “drifting island of plastic.” Air, space, and light pollution now present looming environmental threats created by the launch of new “mega-constellations” of thousands of satellites in the part of space near Earth called “Low Earth Orbit” (LEO). A “take risks and fail often” approach to new technology has been extended to space without consideration of the fact that mistakes in space cannot be cleaned up like they can on Earth.
+
+In 2019, a European Earth observation satellite came dangerously close to colliding with a newly launched mega-constellation satellite, having to perform a last-minute maneuver to avoid the satellite, whose operator did not respond to attempts to contact it. As the number of satellites in congested orbits increases exponentially, close calls like this are becoming more commonplace. And we are seeing an unexpected number of these satellites fail such that they do not even have the ability to try to avoid dangerous collisions. As the movie Gravity illustrated, a collision in space can set off a chain reaction of further collisions, potentially destroying or disabling satellites and spreading large amounts of dangerous space junk. The recent introduction of thousands of satellites in LEO is also creating light and radio-frequency pollution that impairs the once-clear access to the cosmos for critical scientific-based research. Indifferent to these serious environmental issues, and largely unregulated, mega-constellation operators are rushing to launch as many satellites as possible before new rules are put in place.
+
+The Biden-Harris Administration should direct the Federal Communications Commission (FCC) and the Federal Aviation Administration (FAA) to fully examine and address these critical environmental issues before the United States authorizes thousands more LEO satellites in mega-constellations. Three concrete steps are warranted: (i) determine the aggregate impact of all mega-constellations, (ii) conduct a thorough review of these “unprecedented” new uses of space under the National Environmental Policy Act (NEPA), and (iii) adopt new rules that consider the full environmental impacts of mega-constellations before they are launched. In this regard, the Biden-Harris Administration should consider either (i) issuing an Executive Order instructing the FCC and the FAA to evaluate the environmental consequences associated with mega-constellations before permitting their launch or deployment, or (ii) proposing legislation that requires the FCC and the FAA to do the same.
+
+Action — or inaction — by the Biden-Harris Administration will set the standard on which the global space industry will base its next design choices. Unless we act now, we may find that, as with climate change, we wish we had acted much sooner.}
 }
 
 @article{maloney2025investigating,
-  title={Investigating the potential atmospheric accumulation and radiative impact of the coming increase in satellite reentry frequency},
-  author={Maloney, Christopher M and Portmann, Robert W and Ross, Martin N and Rosenlof, Karen H},
-  journal={Journal of Geophysical Research: Atmospheres},
-  volume={130},
-  number={6},
-  pages={e2024JD042442},
-  year={2025},
-  publisher={Wiley Online Library},
-  doi = {10.1029/2024JD042442},
-  category = {environment}
+	title={Investigating the potential atmospheric accumulation and radiative impact of the coming increase in satellite reentry frequency},
+	author={Maloney, Christopher M and Portmann, Robert W and Ross, Martin N and Rosenlof, Karen H},
+	journal={Journal of Geophysical Research: Atmospheres},
+	volume={130},
+	number={6},
+	pages={e2024JD042442},
+	year={2025},
+	publisher={Wiley Online Library},
+	doi = {10.1029/2024JD042442},
+	category = {environment},
+	abstract = {Construction of numerous satellite megaconstellations in the low Earth orbit (LEO) (300–2,000 km) is projected over the coming decades. Estimates suggest that the number of satellites in an LEO could exceed 60,000 by 2040. The increase in the annual mass flux of anthropogenic material into the upper atmosphere as a result of maintaining these megaconstellations could rival the natural occurring meteoric mass flux. Little is known about the aerosols that will be produced by reentry vaporization, which makes estimating the associated impacts on climate and ozone difficult. Aluminum is a primary satellite component that will likely be emitted during reentry vaporization. In this study we simulate a reentry emission of 10 Gg/yr, assuming that all aerosols released is aluminum oxide (Al2O3). This level of Al2O3 emission is consistent with expected megaconstellation growth by 2040. We investigate how the location of atmospheric accumulation, aerosol size distribution, and radiative properties of reentry Al2O3 impacts the middle-to-upper atmosphere. We find that depending on reentry latitude and aerosol size distribution, a 20–40-Gg stratospheric burden of Al2O3 aerosols accumulates poleward of 30 N/S between 10 and 30 km. Small but statistically significant changes in mesospheric heating rates lead to 1.5 K-temperature anomalies in the mesosphere and the stratosphere at Southern Hemisphere high latitudes. These temperature anomalies are accompanied by a 10% reduction in wind speed in the Southern Hemisphere polar vortex, leading to a weaker springtime ozone hole. Some reentry scenarios also experience a strengthening of the Northern Hemisphere polar vortex.}
 }
 
 @inproceedings{maloney2024stratospheric,
-  title={Stratospheric loading and radiative impacts from increased Al2O3 emission caused by an anticipated increase in satellite re-entry frequency},
-  author={Maloney, Christopher and Portmann, Robert and Rosenlof, Karen H and Bardeen, Charles},
-  booktitle={AIAA SCITECH 2024 Forum},
-  pages={2169},
-  year={2024},
-  category = {environment}
+	title={Stratospheric loading and radiative impacts from increased Al2O3 emission caused by an anticipated increase in satellite re-entry frequency},
+	author={Maloney, Christopher and Portmann, Robert and Rosenlof, Karen H and Bardeen, Charles},
+	booktitle={AIAA SCITECH 2024 Forum},
+	pages={2169},
+	year={2024},
+	category = {environment},
+	abstract = {We performed multiple thirty year simulations to investigate the potential atmospheric transport and radiative impacts from metallic aerosol emissions that could be released following the projected increase in satellite reentry frequency due to large Low Earth Orbit constellation deployments. Aluminum oxide was chosen as the likely primary emission from satellite reentry. The alumina was assumed to be emitted uniformly between 60 km and 70 km. Various emission patterns based on latitude and aerosol size were investigated. We find that aluminum oxide accumulates between 10 km and 30 km altitude and at high latitudes in both hemispheres. The time it takes for satellite reentry material to reach the poles equals roughly 5 to 24 months depending on the latitude of emissions and aerosol size. The radiative impact of the reentry aluminum oxide accumulation is small, on the order of several mW/m2. The associated stratospheric temperature perturbations are also small. Two emission scenarios produce statistically significant stratospheric temperature anomalies of a degree Kelvin or less over the southern hemisphere at high latitudes.}
 }
 
 
 % Simulators
 
 @inproceedings{kassing2020hypatia,
-  title={Exploring the "Internet from space" with Hypatia},
-  author={Kassing, Simon and Bhattacherjee, Debopam and {\'A}guas, Andr{\'e} Baptista and Saethre, Jens Eirik and Singla, Ankit},
-  booktitle={Proceedings of the ACM Internet Measurement conference},
-  pages={214--229},
-  year={2020},
-  doi = {10.1145/3419394.3423635},
-  category = {simulators}
+	title={Exploring the "Internet from space" with Hypatia},
+	author={Kassing, Simon and Bhattacherjee, Debopam and {\'A}guas, Andr{\'e} Baptista and Saethre, Jens Eirik and Singla, Ankit},
+	booktitle={Proceedings of the ACM Internet Measurement conference},
+	pages={214--229},
+	year={2020},
+	doi = {10.1145/3419394.3423635},
+	category = {simulators},
+	abstract = {SpaceX, Amazon, and others plan to put thousands of satellites in low Earth orbit to provide global low-latency broadband Internet. SpaceX's plans have matured quickly, such that their underdeployment satellite constellation is already the largest in history, and may start offering service in 2020.
+The proposed constellations hold great promise, but also present new challenges for networking. To enable research in this exciting space, we present Hypatia, a framework for simulating and visualizing the network behavior of these constellations by incorporating their unique characteristics, such as high-velocity orbital motion.
+Using publicly available design details for the upcoming networks to drive our simulator, we characterize the expected behavior of these networks, including latency and link utilization fluctuations over time, and the implications of these variations for congestion control and routing.}
 }
 
 @inproceedings{lai2023starrynet,
-  title={ {StarryNet}: Empowering researchers to evaluate futuristic integrated space and terrestrial networks},
-  author={Lai, Zeqi and Li, Hewu and Deng, Yangtao and Wu, Qian and Liu, Jun and Li, Yuanjie and Li, Jihao and Liu, Lixin and Liu, Weisen and Wu, Jianping},
-  booktitle={20th USENIX Symposium on Networked Systems Design and Implementation (NSDI 23)},
-  pages={1309--1324},
-  year={2023},
-  url = {https://www.usenix.org/conference/nsdi23/presentation/lai-zeqi},
-  category = {simulators}
+	title={ {StarryNet}: Empowering researchers to evaluate futuristic integrated space and terrestrial networks},
+	author={Lai, Zeqi and Li, Hewu and Deng, Yangtao and Wu, Qian and Liu, Jun and Li, Yuanjie and Li, Jihao and Liu, Lixin and Liu, Weisen and Wu, Jianping},
+	booktitle={20th USENIX Symposium on Networked Systems Design and Implementation ()},
+	pages={1309--1324},
+	year={2023},
+	url = {https://www.usenix.org/conference/nsdi23/presentation/lai-zeqi},
+	category = {simulators},
+	abstract = {Futuristic integrated space and terrestrial networks (ISTN) not only hold new opportunities for pervasive, low-latency Internet services, but also face new challenges caused by satellite dynamics on a global scale. It should be useful for researchers to run various experiments to systematically explore new problems in ISTNs. However, existing experimentation methods either attain realism but lack flexibility (e.g. live satellites), or achieve flexibility but lack realism (e.g. ISTN simulators).
+
+This paper presents StarryNet, a novel experimentation framework that enables researchers to conveniently build credible and flexible experimental network environments (ENE) mimicking satellite dynamics and network behaviors of large-scale ISTNs. StarryNet simultaneously achieves constellation-consistency, networked system realism and flexibility, by adopting a real-data-driven, lightweight-emulation-aided approach to build a digital twin of physical ISTNs in the terrestrial virtual environment. Driven by public and real constellation-relevant information, we show StarryNet's acceptable fidelity and demonstrate its flexibility to support various ISTN experiments, such as evaluating different inter-networking mechanisms for space-ground integration, and assessing the network resilience of futuristic ISTNs.}
 }
 
 @inproceedings{lu2024opensn,
-  title={OpenSN: An open source library for emulating LEO satellite networks},
-  author={Lu, Wenhao and Wang, Zhiyuan and Zhang, Shan and Meng, Qingkai and Luo, Hongbin},
-  booktitle={Proceedings of the 8th Asia-Pacific Workshop on Networking},
-  pages={149--155},
-  year={2024},
-  category = {simulators}
+	title={OpenSN: An open source library for emulating LEO satellite networks},
+	author={Lu, Wenhao and Wang, Zhiyuan and Zhang, Shan and Meng, Qingkai and Luo, Hongbin},
+	booktitle={Proceedings of the 8th Asia-Pacific Workshop on Networking},
+	pages={149--155},
+	year={2024},
+	category = {simulators},
+	abstract = {Low-earth-orbit (LEO) satellite constellations (e.g., Starlink) are becoming the necessary component of future Internet. There have been increasing studies on LEO satellite networking. It is a crucial problem how to evaluate these studies in a systematic and reproducible manner. In this paper, we present OpenSN, i.e., an open-source library for emulating large-scale satellite network (SN). Different from Mininet-based SN emulators (e.g., LeoEM), OpenSN adopts container-based virtualization, thus allows for running distributed routing software on each node, and can achieve horizontal scalability via flexible multi-machine extension. Compared to other container-based SN emulators (e.g., StarryNet), OpenSN streamlines the interaction with Docker command line interface and significantly reduces unnecessary operation of creating virtual links. These modifications improve emulation efficiency and vertical scalability on a single machine. Furthermore, OpenSN separates user-defined configuration from container network management via a key-value database that records the necessary information of SN emulation. Such a separation architecture enhances the function extensibility. To sum up, OpenSN exhibits advantages in efficiency, scalability, and extensibility, thus is a valuable open-source library that empowers research on satellite networking. Experimental results show that OpenSN can construct mage-constellations 5X-10X faster than StarryNet, and update link state 2X-4X faster than Mininet.}
 }
 
 @inproceedings{puttonen2015sns3,
-  title={Satellite network simulator 3},
-  author={Puttonen, Jani and Herman, Budiarto and Rantanen, Sami and Laakso, Frans and Kurjenniemi, Janne},
-  booktitle={Workshop on Simulation for European Space Programmes (SESP)},
-  volume={24},
-  pages={26},
-  year={2015},
-  url = {https://indico.esa.int/event/93/contributions/3557/attachments/2837/3294/1800_Puttonen.pdf},
-  category = {simulators}
+	title={Satellite network simulator 3},
+	author={Puttonen, Jani and Herman, Budiarto and Rantanen, Sami and Laakso, Frans and Kurjenniemi, Janne},
+	booktitle={Workshop on Simulation for European Space Programmes (SESP)},
+	volume={24},
+	pages={26},
+	year={2015},
+	url = {https://indico.esa.int/event/93/contributions/3557/attachments/2837/3294/1800_Puttonen.pdf},
+	category = {simulators},
 }
 
 
 % Orbital dynamics
 
 @article{walker1984satellite,
-  title={Satellite constellations},
-  author={Walker, John G},
-  journal={Journal of the British Interplanetary Society},
-  volume={37},
-  pages={559},
-  year={1984},
-  url = {https://ui.adsabs.harvard.edu/abs/1984JBIS...37..559W/abstract},
-  category = {dynamics}
+	title={Satellite constellations},
+	author={Walker, John G},
+	journal={Journal of the British Interplanetary Society},
+	volume={37},
+	pages={559},
+	year={1984},
+	url = {https://ui.adsabs.harvard.edu/abs/1984JBIS...37..559W/abstract},
+	category = {dynamics},
+	abstract = {The present investigation is concerned with the coverage of the earth's surface by multiple-satellite systems, taking into account results reported by Walker (1982). The considered studies have investigated systems with satellites following multiple circular orbits of equal period, providing continuous multiple (rather than only single) coverage of the entire surface of the earth. Attention is given to criteria regarding the selection of a satellite constellation, regular polyhedra and tesselations, practical satellite constellations related to delta patterns, sigma patterns, and omega patterns. Data concerning sigma patterns are presented in tables.}
 }
 
 @techreport{walker1982coverage,
-  title={Coverage Predictions and Selection Criteria for Satellite Constellations.},
-  author={Walker, John G},
-  year={1982},
-  url = {https://apps.dtic.mil/sti/pdfs/ADA129792.pdf},
-  category = {dynamics}
+	title={Coverage Predictions and Selection Criteria for Satellite Constellations.},
+	author={Walker, John G},
+	year={1982},
+	url = {https://apps.dtic.mil/sti/pdfs/ADA129792.pdf},
+	category = {dynamics},
+	abstract = {To assist in the prediction of the Earth-coverage capabilities of large constellations of satellites, studies have been conducted of patterns based on regular tesselations of a plane surface and of others based on regular polyhedra. This work has identified trends associated with increasing numbers of satellites and degrees of coverage, permitting extrapolation from the known capabilities of smaller satellite constellations. An investigation of selection criteria has emphasized the importance of the minimum inter-satellite distance, which provides a particularly convenient criterion for use in preliminary studies, and this in turn has been used in an examination of some non-uniform orbital patterns, which has suggested an improved method of synthesizing such patterns. Results obtained have been discussed with reference to the requirements of the GPS(Global Positioning Systems) navigation satellite system.}
 }
 
 @article{draim1987common,
-  title={A common-period four-satellite continuous global coverage constellation},
-  author={Draim, John E},
-  journal={Journal of Guidance, Control, and Dynamics},
-  volume={10},
-  number={5},
-  pages={492--499},
-  year={1987},
-  category = {dynamics}
+	title={A common-period four-satellite continuous global coverage constellation},
+	author={Draim, John E},
+	journal={Journal of Guidance, Control, and Dynamics},
+	volume={10},
+	number={5},
+	pages={492--499},
+	year={1987},
+	category = {dynamics},
+	abstract = {This paper describes a new four-satellite elliptic orbit constellation giving continuous line-of-sight coverage of every point on the earth's surface. It represents a major improvement over the only other known four-satellite continuous global coverage array by reducing the constellation operational altitudes by about one-half and by utilizing a common period for all of the satellites employed.}
 }
 
 @article{pena2023Masters,
-  title={Master's Thesis: Orbital decay of objects in a low Earth orbit},
-  author={Pe{\~n}a, Luis Miguel},
-  year={2023},
-  url = {https://repository.tudelft.nl/record/uuid:71d56c69-bf94-40bd-ac72-d00807133f5e},
-  category = {dynamics}
+	title={Master's Thesis: Orbital decay of objects in a low Earth orbit},
+	author={Pe{\~n}a, Luis Miguel},
+	year={2023},
+	url = {https://repository.tudelft.nl/record/uuid:71d56c69-bf94-40bd-ac72-d00807133f5e},
+	category = {dynamics},
+	abstract = {}
 }
 
 @misc{saOrbitLifetimes,
-  title={Orbital Lifetimes},
-  howpublished={\url{https://www.spaceacademy.net.au/watch/debris/orblife.htm}},
-  note={Accessed 2025-05-29},
-  category = {dynamics}
+	title={Orbital Lifetimes},
+	howpublished={\url{https://www.spaceacademy.net.au/watch/debris/orblife.htm}},
+	note={Accessed 2025-05-29},
+	category = {dynamics},
 }
 
 @techreport{boykin1966earth,
-  title={Earth orbital lifetime prediction model and program},
-  author={Boykin, EP and Mc Nair, AR},
-  year={1966},
-  url = {https://ntrs.nasa.gov/api/citations/19660018731/downloads/19660018731.pdf},
-  category = {dynamics}
+	title={Earth orbital lifetime prediction model and program},
+	author={Boykin, EP and Mc Nair, AR},
+	year={1966},
+	url = {https://ntrs.nasa.gov/api/citations/19660018731/downloads/19660018731.pdf},
+	category = {dynamics},
+	abstract = {An earth orbital satellite lifetime deck has been developed and programmed in Fortran IV language for the IBM 7094. The deck represents the
+development of a sophisticated and accurate lifetime prediction technique , which
+includes the effect of aerodynamic drag and the nonspherical gravitational potential of the earth. The computer program can be used to predict lifetime based
+on only a gross description of the initial orbit and drag parameters, or based on
+a very exact definition of the initial orbit and detailed description of the drag
+parameters and their variations depending on the amount of information available.
+The primary factor contributing to uncertainty in lifetime predictions using this
+model is the atmospheric density. A very flexible model based on data from
+Discoverer, Gemini, and Saturn flights has been established. The primary
+uncertainty remaining in this model is prediction for future years of solar activity behavior and its influence on density as a function of altitude. As additional
+flight data and solar activity observations become available, they may readily
+be incorporated into the model, thus providing a rapidly changing density model
+which insures the best representation possible. Efforts to refine the models as
+presently defined and to perform pertinent studies in the lifetime area are continuing. This report represents only the present status of model definitions and
+defines the computer program now in use. }
 }
 
 @book{vallado2001fundamentals,
-  title={Fundamentals of astrodynamics and applications},
-  author={Vallado, David A},
-  volume={12},
-  year={2001},
-  publisher={Springer Science \& Business Media},
-  category = {dynamics}
+	title={Fundamentals of astrodynamics and applications},
+	author={Vallado, David A},
+	volume={12},
+	year={2001},
+	publisher={Springer Science \& Business Media},
+	category = {dynamics},
 }
 
 @article{dong2010accuracy,
-  title={An accuracy analysis of the SGP4/SDP4 model},
-  author={Dong, Wei and Chang-yin, Zhao},
-  journal={Chinese Astronomy and Astrophysics},
-  volume={34},
-  number={1},
-  pages={69--76},
-  year={2010},
-  publisher={Elsevier},
-  category = {dynamics}
+	title={An accuracy analysis of the SGP4/SDP4 model},
+	author={Dong, Wei and Chang-yin, Zhao},
+	journal={Chinese Astronomy and Astrophysics},
+	volume={34},
+	number={1},
+	pages={69--76},
+	year={2010},
+	publisher={Elsevier},
+	category = {dynamics},
+	abstract = {Based on the latest release of the SGP4/SDP4 (Simplified General Perturbation Version 4/ Simplified Deep-space Perturbation Version 4) model, in this paper we have designed an orbit determination program. Through calculations for the 1120 objects with various types and orbital elements selected from the space objects database, we have obtained the accuracies of the orbit determination prediction dealt with various types of space objects by the SGP4/SDP4 model. The results show that the accuracies of the near-earth objects are in the order of magnitude of 100 meters; the averages of the orbit determination accuracies of the semi-synchronous and geosynchronous orbits are, respectively, 0.7 and 1.9 km. The orbit determination accuracies of the elliptical orbit objects are related to their eccentricities. Except for few elliptical orbit objects with e > 0.8, the orbit determination errors of the vast majority of the elliptical orbit objects are all less than 10 km. By using the SGP4/SDP4 model to make 3 days predictions for near-earth objects, 30 days for semi-synchronous orbit objects, 15 days for geosynchronous orbit objects and 1 day for elliptical orbit objects, the errors of prediction generally don't exceed 40 km.}
 }
 
 @article{lee2021closed,
-  title={Closed-form solution of repeat ground track orbit design and constellation deployment strategy},
-  author={Lee, Soung Sub},
-  journal={Acta Astronautica},
-  volume={180},
-  pages={588--595},
-  year={2021},
-  publisher={Elsevier},
-  doi = {10.1016/j.actaastro.2020.12.021},
-  category = {dynamics}
+	title={Closed-form solution of repeat ground track orbit design and constellation deployment strategy},
+	author={Lee, Soung Sub},
+	journal={Acta Astronautica},
+	volume={180},
+	pages={588--595},
+	year={2021},
+	publisher={Elsevier},
+	doi = {10.1016/j.actaastro.2020.12.021},
+	category = {dynamics},
+	abstract = {The present work proposes a closed-form solution for circular repeat ground track (RGT) orbit designs and constellations and its application strategy. The proposed solution is an equation of motion proving that the characteristic of a circular RGT orbit is similar to that of the parametric curve of Ptolemy's model and provides a low computational cost for the RGT orbit design and related numerical analysis. The application strategy is to coincide with the self-intersection point of an RGT orbit over a specific target of interest on Earth and make it the starting point of the first satellite orbit in the satellite group. The remaining satellites are designed to have the same RGT orbit as the first satellite; therefore, the entire group has twice the repeat cycle over a specific target. To this end, this study represents an algorithm to match the specific target and the intersection point through an iterative numerical analysis method centering on the RGT equation. A set of orbital elements for a satellite group is also derived herein. The satellite group with a repeat cycle that doubles for a specific target shows a significantly shorter revisit time compared with the conventional Walker constellation.}
 }
 
 @misc{sgp4,
-  author       = {Rhodes, Brandon},
-  title        = {sgp4: Python implementation of recent {SGP4} routines},
-  howpublished = {\url{https://pypi.org/project/sgp4/}},
-  year         = {2025},
-  category = {dynamics}
+	author       = {Rhodes, Brandon},
+	title        = {sgp4: Python implementation of recent {SGP4} routines},
+	howpublished = {\url{https://pypi.org/project/sgp4/}},
+	year         = {2025},
+	category = {dynamics},
 }
 
 @inproceedings{vallado_sgp4,
-author = {Vallado, David and Crawford, Paul},
-year = {2008},
-month = {08},
-pages = {},
-title = {SGP4 Orbit Determination},
-isbn = {978-1-62410-001-7},
-doi = {10.2514/6.2008-6770},
-category = {dynamics}
+	author = {Vallado, David and Crawford, Paul},
+	year = {2008},
+	month = {08},
+	pages = {},
+	title = {SGP4 Orbit Determination},
+	isbn = {978-1-62410-001-7},
+	doi = {10.2514/6.2008-6770},
+	category = {dynamics},
+	abstract = {In 2006, an updated version of SGP4 was presented for general use. The propagation routine relies
+on Two-Line Element (TLE) set data provided by the U.S. Government for several decades. Many
+independent organizations have access to observations, or ephemerides developed with other
+programs. Because the TLE is a compact means to obtain modestly accurate and fast calculations, it is
+desirable to have an orbit determination package that is compatible with the aforementioned code.
+This paper presents the code, test cases, and discussion of computer code to produce TLE data from
+an externally derived ephemeris. Initial code is also developed for processing raw observations. }
 }
 
 
 % Radiation environment
 
 @article{mauk2014vanAllenProbes,
-  title={Science Objectives and Rationale for the Radiation Belt Storm Probes Mission},
-  author={Mauk, BH and Fox, NJ and Kanekal, SG and Kessel, RL and Sibeck, DG and Ukhorskiy, A},
-  journal={Space Science Reviews},
-  volume={179},
-  number={1-4},
-  pages={3--27},
-  year={2013},
-  doi = {10.1007/s11214-012-9908-y},
-  category = {radiation}
+	title={Science Objectives and Rationale for the Radiation Belt Storm Probes Mission},
+	author={Mauk, BH and Fox, NJ and Kanekal, SG and Kessel, RL and Sibeck, DG and Ukhorskiy, A},
+	journal={Space Science Reviews},
+	volume={179},
+	number={1-4},
+	pages={3--27},
+	year={2013},
+	doi = {10.1007/s11214-012-9908-y},
+	category = {radiation},
+	abstract = {The NASA Radiation Belt Storm Probes (RBSP) mission addresses how populations of high energy charged particles are created, vary, and evolve in space environments, and specifically within Earth's magnetically trapped radiation belts. RBSP, with a nominal launch date of August 2012, comprises two spacecraft making in situ measurements for at least 2 years in nearly the same highly elliptical, low inclination orbits (1.1×5.8 RE, 10∘). The orbits are slightly different so that 1 spacecraft laps the other spacecraft about every 2.5 months, allowing separation of spatial from temporal effects over spatial scales ranging from ∼0.1 to 5 RE. The uniquely comprehensive suite of instruments, identical on the two spacecraft, measures all of the particle (electrons, ions, ion composition), fields ( E and B), and wave distributions ( d E and d B) that are needed to resolve the most critical science questions. Here we summarize the high level science objectives for the RBSP mission, provide historical background on studies of Earth and planetary radiation belts, present examples of the most compelling scientific mysteries of the radiation belts, present the mission design of the RBSP mission that targets these mysteries and objectives, present the observation and measurement requirements for the mission, and introduce the instrumentation that will deliver these measurements. This paper references and is followed by a number of companion papers that describe the details of the RBSP mission, spacecraft, and instruments.}
 }
 
 @article{ganushkina2011locations,
-  title={Locations of boundaries of outer and inner radiation belts as observed by Cluster and Double Star},
-  author={Ganushkina, N Yu and Dandouras, I and Shprits, YY and Cao, J},
-  journal={Journal of Geophysical Research: Space Physics},
-  volume={116},
-  number={A9},
-  year={2011},
-  publisher={Wiley Online Library},
-  doi = {10.1029/2010JA016376},
-  category = {radiation}
+	title={Locations of boundaries of outer and inner radiation belts as observed by Cluster and Double Star},
+	author={Ganushkina, N Yu and Dandouras, I and Shprits, YY and Cao, J},
+	journal={Journal of Geophysical Research: Space Physics},
+	volume={116},
+	number={A9},
+	year={2011},
+	publisher={Wiley Online Library},
+	doi = {10.1029/2010JA016376},
+	category = {radiation},
+	abstract = {Cluster CIS ion spectrograms measured during the period of the recent solar minimum between April 2007 and June 2009, when Cluster was deep in the radiation belts with its perigee as close as L = 2, are analyzed. The analysis is complemented by Double Star TC-1 satellite data from HIA ion spectrograms on perigee passes during the period of May 15, 2007 to September 28, 2007. We demonstrate how the background counts produced by energetic particles of the radiation belts in Cluster CIS and Double Star HIA instruments can be interpreted to obtain the locations of the boundaries of the outer and inner belts. The obtained L-MLT distribution of boundaries reflects the general structure of the radiation belts. Closer examination of the time-dependent L locations of the boundaries reveals several dips to lower L-shells (from L = 6 to L = 4) in the outer boundary location. The importance of the solar wind pressure increases for the Earthward shift of the outer boundary of the outer belt is discussed. The location and thickness of the slot region are studied using the determined inner boundaries of the outer belt and the outer boundaries of the inner belt. It was found that during intervals of low activity in the solar wind parameters, the slot region widens, which is consistent with weaker inward radial diffusion, and also with weaker local acceleration that can occur only at higher L-shells outside the plasmasphere. We conclude that boundaries of radiation belts determined from background measurements on the instruments with energy ranges that do not cover the radiation belts' energies provide valuable additional information that is useful for radiation belts' model development and validation.}
 }
 
 @article{li2024unveiling,
-  title={Unveiling energetic particle dynamics in the near-Earth environment from CubeSat missions},
-  author={Li, Xinlin},
-  journal={AGU Advances},
-  volume={5},
-  number={3},
-  pages={e2024AV001256},
-  year={2024},
-  publisher={Wiley Online Library},
-  doi = {10.1029/2024AV001256},
-  category = {radiation}
+	title={Unveiling energetic particle dynamics in the near-Earth environment from CubeSat missions},
+	author={Li, Xinlin},
+	journal={AGU Advances},
+	volume={5},
+	number={3},
+	pages={e2024AV001256},
+	year={2024},
+	publisher={Wiley Online Library},
+	doi = {10.1029/2024AV001256},
+	category = {radiation},
+	abstract = {The discovery of the Van Allen radiation belts marked a prominent milestone in space physics. Recent advances, through the measurements of two CubeSat missions, have shed new light on the dynamics of energetic particles in the near-Earth environment. Measurements from CSSWE, a student-led mission, revealed that the decay of low-energy neutrons, associated with cosmic rays impacting the atmosphere, is the primary source of relativistic electrons at the inner edge of the inner belt (Li et al., Nature, 2017, https://doi.org/10.1038/nature2464). Recently CIRBE captured striking details of energetic electron dynamics (Li et al., GRL, 2024, https://doi.org/10.1029/2023gl107521), further demonstrating high-quality science achievable with CubeSat missions.},
 }
 
 @article{girgis2022radiation,
-  title={Radiation analysis of LEO mission in the South Atlantic anomaly during geomagnetic storm},
-  author={Girgis, Kirolosse M and Hada, Tohru and Matsukiyo, Shuichi and Yoshikawa, Akimasa},
-  journal={IEEE Journal of Radio Frequency Identification},
-  volume={6},
-  pages={292--298},
-  year={2022},
-  publisher={IEEE},
-  doi = {10.1109/JRFID.2022.3163441},
-  category = {radiation}
+	title={Radiation analysis of LEO mission in the South Atlantic anomaly during geomagnetic storm},
+	author={Girgis, Kirolosse M and Hada, Tohru and Matsukiyo, Shuichi and Yoshikawa, Akimasa},
+	journal={IEEE Journal of Radio Frequency Identification},
+	volume={6},
+	pages={292--298},
+	year={2022},
+	publisher={IEEE},
+	doi = {10.1109/JRFID.2022.3163441},
+	category = {radiation},
+	abstract = {We have studied the radiation environment of LEO spacecraft when passing through the South Atlantic Anomaly (SAA) during the geomagnetic storm event of 15 May 2005. The 70–180 MeV proton flux information were numerically obtained from a simulation model of the inner radiation belt. The radiation analysis was consisted of two parts: the estimation of the Single Event Upset (SEU) rates and the absorbed radiation doses. One of the characteristics of the SAA at 800 km altitude during the recovery phase of the geomagnetic storm was the enhancement of its southern proton flux cell. It was found that the excess SEU rates and absorbed radiation doses could reach at least 200% and 70% respectively during the recovery phase in comparison to the initial phase of the geomagnetic storm. The estimated radiation results were in a good agreement with observations.
+}
 }
 
 @book{guild2022best,
-  title={Best Practices for Generating Space Environment Specification with Modern Tools},
-  author={Guild, Timothy B and Davis, Scott C and Boyd, Alex J and O'Brien, T Paul and Fennell, Joseph F and Mazur, Joseph E and Brinkman, Douglas G and Peterson, Glenn E and Jenkin, Alan B},
-  year={2022},
-  publisher={Aerospace Corporation},
-  url = {https://aerospace.org/paper/best-practices-generating-space-environment-specifications-modern-tools},
-  category = {radiation}
+	title={Best Practices for Generating Space Environment Specification with Modern Tools},
+	author={Guild, Timothy B and Davis, Scott C and Boyd, Alex J and O'Brien, T Paul and Fennell, Joseph F and Mazur, Joseph E and Brinkman, Douglas G and Peterson, Glenn E and Jenkin, Alan B},
+	year={2022},
+	publisher={Aerospace Corporation},
+	url = {https://aerospace.org/paper/best-practices-generating-space-environment-specifications-modern-tools},
+	category = {radiation},
+	abstract = {At the beginning of a satellite acquisition, the organization responsible for satellite design must estimate
+the space environment the satellite will experience throughout its mission lifetime, usually captured in a
+document referred to as the program environmental specification. The goal of an environment
+specification is to completely specify the severity of the space environment the mission must operate in,
+subject to the appropriate conservatism commensurate with the risk tolerance of the mission, for the
+extent of the mission lifetime. Many tools exist that can assist in the generation of a complete, appropriate
+environment specification, but these tools are continually developed on faster timescales than satellites
+are designed and built.
+The purpose of this document is to describe the current generation of tools and methods and provide
+several worked examples to produce a preliminary space environmental specification for the acquisition
+of a satellite system. This document is intended to be used as an introduction to the subject by
+survivability engineers new to space vehicle engineering, or an introduction to the latest tools for longtime experts who are unfamiliar with these new capabilities. Sections contained herein are devoted to
+describing tools, including AE9/AP9-IRENE, the CREME tools, solar energetic particle models, lowenergy plasma definitions, micrometeoroids, orbital debris, and the atomic oxygen environment of the
+upper atmosphere.
+These tools are then used to provide worked examples of appropriate environment specifications for
+whole-mission-accumulated quantities and for whole-mission worst-case quantities. Mission-accumulated
+environments include trapped electron fluences, proton fluences (trapped and solar), galactic cosmic rays,
+atomic oxygen ram fluence, micrometeoroid and orbital debris environments and mitigation, and lowenergy plasma fluence for surface degradation. Worst-case quantities computed include worst-case
+electron flux for internal charging mitigation, worst-case proton flux and linear energy transfer flux for
+single-event effects design, and worst-case low-energy electron fluxes for surface charging design. We
+also discuss specification-related topics such as model updates, uniform documentation, and radiation
+design margin, and finally look toward future model and tool development.
+We hope this document will serve the satellite engineering community}
 }
 
 @inproceedings{wang2026radshield,
-  title={Radshield: Software Radiation Protection for Commodity Hardware in Space},
-  author={Wang, Haoda and Myint, Steven and Verma, Vandi and Winetraub, Yonatan and Yang, Junfeng and Cidon, Asaf},
-  booktitle={Proceedings of the 31st ACM International Conference on Architectural Support for Programming Languages and Operating Systems, Volume 1},
-  pages={219--233},
-  year={2026},
-  url = {https://radshield.github.io},
-  category = {radiation}
+	title={Radshield: Software Radiation Protection for Commodity Hardware in Space},
+	author={Wang, Haoda and Myint, Steven and Verma, Vandi and Winetraub, Yonatan and Yang, Junfeng and Cidon, Asaf},
+	booktitle={Proceedings of the 31st ACM International Conference on Architectural Support for Programming Languages and Operating Systems, Volume 1},
+	pages={219--233},
+	year={2026},
+	url = {https://radshield.github.io},
+	category = {radiation},
+	abstract = {Exponentially-declining launch costs have led to an explosion of inexpensive satellites launched to space, often equipped with off-the-shelf chips. These chips, however, lack hardware radiation protection, leaving them vulnerable to space radiation. We thus design Radshield, a software system protecting against the two most ubiquitous and costly radiation fault scenarios: (a) radiation-induced short-circuits that lead to permanent hardware failure; and (b) radiation-induced transient charges that result in single-bit silent data corruption (SDC). Radshield counters these failure scenarios with two components. First, it uses a short-circuit detector that can detect tiny increases in the device's current draw by estimating the normal current draw when resource utilization is low. Second, it duplicates the execution of spacecraft workloads in a CPU and memory-efficient manner, and catches SDCs even when they affect the CPU's pipeline or cache. In our experiments, we show Radshield is very effective at preventing both errors, and is 1.4-35.5× more power-efficient than the state-of-the-art protection mechanisms in detecting SDC. Radshield is deployed on missions in low-earth orbit and in deep space.
+''The 9000 series is the most reliable computer ever made. No 9000 computer has ever made a mistake or distorted information. We are all, by any practical definition of the words, foolproof and incapable of error.''
+HAL, 2001: A Space Odyssey}
 }
 
 @inproceedings{mayanbari2011design,
-  title={Design and analyse space radiation shielding for a nanosatellite in Low Earth Orbit (LEO)},
-  author={Mayanbari, Masood and Kasesaz, Yaser},
-  booktitle={Proceedings of 5th International Conference on Recent Advances in Space Technologies-RAST2011},
-  pages={489--493},
-  year={2011},
-  organization={IEEE},
-  url = {https://ieeexplore.ieee.org/document/5966883},
-  category = {radiation}
+	title={Design and analyse space radiation shielding for a nanosatellite in Low Earth Orbit (LEO)},
+	author={Mayanbari, Masood and Kasesaz, Yaser},
+	booktitle={Proceedings of 5th International Conference on Recent Advances in Space Technologies-RAST2011},
+	pages={489--493},
+	year={2011},
+	organization={IEEE},
+	url = {https://ieeexplore.ieee.org/document/5966883},
+	category = {radiation},
+	abstract = {In this paper we design and analyze space radiation shielding for Nanosatellite with perigee 250 km and apogee 650 km, with endurance one month in solar max activity. At first step space radiation environment simulated. The proton spectrum energy in inner Van Allen belt varies from 0.01 MeV to 400 MeV. In second step radiation shield designed. The shield was made by AL7075. Analyzes done with formula calculation and MCNP-X.}
 }
 
 @misc{esaShielding,
-  author       = {Large, Matthew},
-  title        = {European Space Radiation Shielding Workshop},
-  howpublished = {\url{https://indico.esa.int/event/501/contributions/9646/}},
-  note         = {Accessed: 2026-05},
-  category = {radiation}
+	author       = {Large, Matthew},
+	title        = {European Space Radiation Shielding Workshop},
+	howpublished = {\url{https://indico.esa.int/event/501/contributions/9646/}},
+	note         = {Accessed: 2026-05},
+	category = {radiation},
+	abstract = {The new age of space has given rise to many technological advancements in spacecraft design and manufacturing. A primary example is the space industry's migration from Aluminium to lightweight composite materials such as carbon fibre-reinforced polymers (CFRPs). However, limited information exists that explicitly assesses the radiation shielding performance in low earth orbit (LEO) of these lightweight composite satellite designs compared to the traditionally employed solid Aluminium structures.
+
+In this work, we perform a comprehensive assessment of the radiation shielding provided by CFRP panels for satellites in LEO. A range of solid and sandwich panel designs to replace Aluminium as the primary structural panels for small satellites (< 500 kg). These panel designs, driven by engagement with industry partners, are being fabricated by the Space Technology and Industry Institute (STII) at Swinburne University of Technology, Australia as demonstrators for advancing Australia's domestic space capabilities. Here, we present a shielding performance study of these CFRP sandwich panels for the radiation exposure conditions expected for LEO missions. The radiation shielding performance is assessed via Geant4 simulations that calculate the reduction in absorbed dose, the particle species and energy spectra of the satellite's internal environment, and the resulting quality factor of the internal radiation field. Preliminary results demonstrate the feasibility of CFRP panels to provide adequate radiation shielding to support mission lengths of over 1000 days, based on typical lifetime dose limits for commercially available electronics. To further extend these mission lifetimes, we explore the use of thin, metallic (high Z) foils and spray coatings. To validate the results of this simulation study, experimental measurements will be conducted at accelerator facilities. The results of this work align with multiple of the conference themes, including multi-layer and composite shielding, radiation shielding modelling, experimental testing and validation of shielding, and shielding solutions for small satellites.}
 }
 
 
 % Stability of orbital systems
 
 @article{liou2008instability,
-  title={Instability of the present LEO satellite populations},
-  author={Liou, J-C and Johnson, Nicholas L},
-  journal={Advances in Space Research},
-  volume={41},
-  number={7},
-  pages={1046--1053},
-  year={2008},
-  publisher={Elsevier},
-  category = {stability}
+	title={Instability of the present LEO satellite populations},
+	author={Liou, J-C and Johnson, Nicholas L},
+	journal={Advances in Space Research},
+	volume={41},
+	number={7},
+	pages={1046--1053},
+	year={2008},
+	publisher={Elsevier},
+	category = {stability},
+	abstract = {Several studies conducted during 1991–2001 demonstrated, with some assumed launch rates, the future unintended growth potential of the Earth satellite population, resulting from random, accidental collisions among resident space objects. In some low Earth orbit (LEO) altitude regimes where the number density of satellites is above a critical spatial density, the production rate of new breakup debris due to collisions would exceed the loss of objects due to orbital decay.
+A new study has been conducted in the Orbital Debris Program Office at the NASA Lyndon B. Johnson Space Center, using higher fidelity models to evaluate the current debris environment. The study assumed no satellites were launched after December 2005. A total of 150 Monte Carlo runs were carried out and analyzed. Each Monte Carlo run simulated the current debris environment and projected it 200 years into the future. The results indicate that the LEO debris environment has reached a point such that even if no further space launches were conducted, the Earth satellite population would remain relatively constant for only the next 50 years or so. Beyond that, the debris population would begin to increase noticeably, due to the production of collisional debris. Detailed analysis shows that this growth is primarily driven by high collision activities around 900–1000 km altitude – the region which has a very high concentration of debris at present.
+In reality, the satellite population growth in LEO will undoubtedly be worse than this study indicates, since spacecraft and their orbital stages will continue to be launched into space. Postmission disposal of vehicles (e.g., limiting postmission orbital lifetimes to less than 25 years) will help, but will be insufficient to constrain the Earth satellite population. To better preserve the near-Earth environment for future space activities, it might be necessary to remove existing large and massive objects from regions where high collision activities are expected.}
 }
 
 @inproceedings{jang2022stability,
-  title={Stability of the LEO Environment as a Dynamical System},
-  author={Jang, Daniel and D’Ambrosio, Andrea and Lifson, Miles and Pasiecznik, Celina and Linares, Richard},
-  booktitle={Advanced Maui Optical and Space Surveillance Technologies (AMOS) Conference},
-  year={2022},
-  url = {https://amostech.com/TechnicalPapers/2022/Space-Debris/Jang.pdf},
-  category = {stability}
+	title={Stability of the LEO Environment as a Dynamical System},
+	author={Jang, Daniel and D’Ambrosio, Andrea and Lifson, Miles and Pasiecznik, Celina and Linares, Richard},
+	booktitle={Advanced Maui Optical and Space Surveillance Technologies (AMOS) Conference},
+	year={2022},
+	url = {https://amostech.com/TechnicalPapers/2022/Space-Debris/Jang.pdf},
+	category = {stability},
+	abstract = {The new space age has brought with it a congested Low Earth Orbit (LEO) environment, where new commercial
+and government large LEO constellations (LLC) are being proposed at a faster rate that require strict management of
+the orbital architecture. Effective policies and technologies to enable deorbiting measures for post mission disposal
+(PMD) and active debris removal (ADR) are needed to remove payloads that are past their lifetimes and other debris
+objects. Anthropogenic fragmentation events such as destructive anti-satellite tests produce thousands of debris pieces.
+Natural conjunctions happen as well, with around 300 on-orbit fragmentation events having occurred to date. As the
+number of satellites and debris continue to grow, it is imperative to calculate the relative and absolute risk of collisions
+in LEO.
+There are largely two methods to model the evolution of the LEO ASO population and collision risk: statistical
+sampling methods such as Monte Carlo methods, and source-sink models, also known as particle-in-box models. Statistical sampling methods propagate every ASO’s orbital states with high fidelity propagators to estimate the future
+space environment at some small timesteps. Computing a debris environment with different sets of assumptions,
+however, requires high computational cost as each object must be propagated. Source-sink models describe the interactions between populations of objects with ordinary differential equations. Average values are often used to set the
+parameters of each species of population. This method removes the need for computationally expensive propagation
+of every ASO states to estimate the future debris environment. MIT Orbital Capacity Tool (MOCAT) has recently been
+developed, which is an evolutionary dynamical system model to analyze the evolution of the LEO ASO population.
+The LEO environment is modeled as a multi-shelled system with a feedback control loop, where some parameters
+such as launch rate and PMD rate can be set as the control variable for some cost optimization.
+In this paper the effect of expanding the populations to multiple species to span a wider set of parameters is explored.
+For example, from the 3-species MOCAT model consisting of payload, derelict, debris species, the debris population is divided into large and small debris populations to create a 4-species model, whose dynamics is then analyzed.
+The additional sampling of the species result in a different population evolution compared to the original generalized
+property, as the interaction with the other species and atmospheric deceleration affect the expanded species differently. Separately, a 5-species model is created by expanding the 3-population model with the payload and derelict
+objects each expanded into large and small populations. These models are evaluated for scenarios initialized with
+the MASTER 8 debris population for 2020, atmosphere modeled with the average solar cycle in JB2008 and future
+launch profile from International Telecommunication Union (ITU) filings as well as multiples of the filings as the
+replacement-level launch rate to replenish the future constellations. A Monte-Carlo method is also being developed
+to validate the source-sink model. This method is used to estimate the collision probability for the source-sink model
+using the Cube method. Preliminary results from this development is also described in this paper. The results from
+this analysis shows that using singular average values for the ASO species’ physical characteristics may be too simplified — additional sampling of the varied pop}
 }
 
 @inproceedings{d2022analysis,
-  title={Analysis of the LEO orbital capacity via probabilistic evolutionary model},
-  author={D’Ambrosio, Andrea and Servadio, Simone and Siew, Peng Mun and Jang, Daniel and Lifson, Miles and Linares, Richard},
-  booktitle={2022 AAS/AIAA Astrodynamics Specialist Conference, Charlotte, North Carolina, August 7},
-  volume={11},
-  year={2022},
-  category = {stability}
+	title={Analysis of the LEO orbital capacity via probabilistic evolutionary model},
+	author={D’Ambrosio, Andrea and Servadio, Simone and Siew, Peng Mun and Jang, Daniel and Lifson, Miles and Linares, Richard},
+	booktitle={2022 AAS/AIAA Astrodynamics Specialist Conference, Charlotte, North Carolina, August 7},
+	volume={11},
+	year={2022},
+	category = {stability},
+	abstract = {The increasing number of Anthropogenic Space Objects (ASO) in Low Earth Orbit (LEO) poses a threat to the safety and sustainability of the space environment. Multiple companies are planning to launch large constellations of hundreds or thousands of satellites in the near future, increasing the probability of collisions and debris generation. This paper analyses the long-term evolution of the LEO ASO population, with the goal of estimating LEO orbital capacity. This is carried out by introducing a new probabilistic source-sink model. The developed source-sink model is a multi-shell multi-species model, which includes different object species, such as active and derelict satellites, and debris. Furthermore, debris can be divided into two subgroups: trackable and non-trackable debris, the last ones representing a significant hazard for active satellites. In addition, the proposed model accounts for collision events and atmospheric drag effects, which include the influence of solar activity. Indeed, the Jacchia-Bowman 2008 (JB2008) thermospheric density model is exploited. The results prove that considering un-tracked debris within the model actually produces more collisions and therefore a smaller population of active satellites, as well as affecting the safety of LEO and its orbital capacity.}
 }
 
 @inproceedings{chen2024unraveling,
-  title={Unraveling Physical Space Limits for LEO Network Scalability},
-  author={Chen, Yimei and Liu, Lixin and Li, Yuanjie and Li, Hewu and Wu, Qian and Liu, Jun and Lai, Zeqi},
-  booktitle={Proceedings of the 23rd ACM Workshop on Hot Topics in Networks},
-  pages={43--51},
-  year={2024},
-  doi = {10.1145/3696348.3696885},
-  category = {stability}
+	title={Unraveling Physical Space Limits for LEO Network Scalability},
+	author={Chen, Yimei and Liu, Lixin and Li, Yuanjie and Li, Hewu and Wu, Qian and Liu, Jun and Lai, Zeqi},
+	booktitle={Proceedings of the 23rd ACM Workshop on Hot Topics in Networks},
+	pages={43--51},
+	year={2024},
+	doi = {10.1145/3696348.3696885},
+	category = {stability},
+	abstract = {Low Earth Orbit (LEO) satellite network is undergoing an explosive expansion to enable high-speed Internet for numerous users anywhere on Earth. However, as a cyber-physical network, the LEO network's sustainable expansion is constrained by its harsh, crowded, and imbalanced physical environment. This position paper dives into two physical constraints for the LEO network scalability: the scale-out limit by satellite safety distances in crowded outer space, and the scale-up limit by the mismatch between the uniform LEO network capacity supply and geographically non-uniform global distribution of user demands. Traditional networking research pays less attention to these physical scaling limits, which may imply a call for a cyber-physical co-design to help the LEO network grow in the challenged space environment.}
 }
 
 @techreport{nasa_ca_handbook,
-  author      = { {National Aeronautics and Space Administration}},
-  title       = {Spacecraft Conjunction Assessment and Collision Avoidance Best Practices Handbook},
-  institution = {NASA Office of the Chief Engineer},
-  year        = {2023},
-  month       = {February},
-  number      = {NASA/SP-20230002470 Rev 1},
-  note        = {\url{https://nodis3.gsfc.nasa.gov/OCE_docs/OCE_51.pdf}},
-  category = {stability}
+	author      = { {National Aeronautics and Space Administration}},
+	title       = {Spacecraft Conjunction Assessment and Collision Avoidance Best Practices Handbook},
+	institution = {NASA Office of the Chief Engineer},
+	year        = {2023},
+	month       = {February},
+	number      = {NASA/SP-20230002470 Rev 1},
+	note        = {\url{https://nodis3.gsfc.nasa.gov/OCE_docs/OCE_51.pdf}},
+	category = {stability},
 }
 
 @article{kessler1978collision,
-  title={Collision frequency of artificial satellites: The creation of a debris belt},
-  author={Kessler, Donald J and Cour-Palais, Burton G},
-  journal={Journal of Geophysical Research: Space Physics},
-  volume={83},
-  number={A6},
-  pages={2637--2646},
-  year={1978},
-  publisher={Wiley Online Library},
-  doi = {10.1029/JA083iA06p02637},
-  category = {stability}
+	title={Collision frequency of artificial satellites: The creation of a debris belt},
+	author={Kessler, Donald J and Cour-Palais, Burton G},
+	journal={Journal of Geophysical Research: Space Physics},
+	volume={83},
+	number={A6},
+	pages={2637--2646},
+	year={1978},
+	publisher={Wiley Online Library},
+	doi = {10.1029/JA083iA06p02637},
+	category = {stability},
+	abstract = {As the number of artificial satellites in earth orbit increases, the probability of collisions between satellites also increases. Satellite collisions would produce orbiting fragments, each of which would increase the probability of further collisions, leading to the growth of a belt of debris around the earth. This process parallels certain theories concerning the growth of the asteroid belt. The debris flux in such an earth-orbiting belt could exceed the natural meteoroid flux, affecting future spacecraft designs. A mathematical model was used to predict the rate at which such a belt might form. Under certain conditions the belt could begin to form within this century and could be a significant problem during the next century. The possibility that numerous unobserved fragments already exist from spacecraft explosions would decrease this time interval. However, early implementation of specialized launch constraints and operational procedures could significantly delay the formation of the belt.}
 }
 
 @article{lifson2025low,
-  title={Low-Earth-Orbit Packing: Implications for Orbit Design and Policy},
-  author={Lifson, Miles and Arnas, David and Avenda{\~n}o, Mart{\'\i}n and Linares, Richard},
-  journal={Journal of Spacecraft and Rockets},
-  volume={62},
-  number={2},
-  pages={452--465},
-  year={2025},
-  publisher={American Institute of Aeronautics and Astronautics},
-  doi = {10.2514/1.A35913},
-  category = {stability}
+	title={Low-Earth-Orbit Packing: Implications for Orbit Design and Policy},
+	author={Lifson, Miles and Arnas, David and Avenda{\~n}o, Mart{\'\i}n and Linares, Richard},
+	journal={Journal of Spacecraft and Rockets},
+	volume={62},
+	number={2},
+	pages={452--465},
+	year={2025},
+	publisher={American Institute of Aeronautics and Astronautics},
+	doi = {10.2514/1.A35913},
+	category = {stability},
+	abstract = {As more and more operators propose and deploy large constellations, the finite orbital volume in low Earth orbit (LEO) is becoming increasingly congested. Over the last several years, we have been developing a proposal for LEO orbital coordination that uses carefully designed slots in nested concentric shells to avoid the potential for hazardous close approaches between participating spacecraft in their mission orbit. Such a slotting structure provides several benefits, including a reduction in orbital risk, clear analytic tools to understand the opportunity costs associated with a particular shell and slot design, and methods to assess and improve the efficiency with which operators make use of LEO. This paper offers a high-level description of key findings from our previous work on shell design under orbital perturbations and slot reconfiguration, with an emphasis on applications for assessing the efficiency of orbital use. It then explains how these methods could be used for a variety of policy and regulatory purposes, including assessing the efficiency of orbital use, remaining potential admissible slot locations that preserve compatibility, and the efficacy of capacity-expanding measures. Various potential implementation pathways for slotting are presented and compared. Several best practices for safe and efficient constellation design are proposed.}
 }
 
 
@@ -465,23 +584,32 @@ category = {dynamics}
 % ISLs
 
 @inproceedings{hauri2020internet,
-  title={"Internet from Space" without Inter-satellite Links},
-  author={Hauri, Yannick and Bhattacherjee, Debopam and Grossmann, Manuel and Singla, Ankit},
-  booktitle={Proceedings of the 19th ACM Workshop on Hot Topics in Networks},
-  pages={205--211},
-  year={2020},
-  doi = {10.1145/3422604.3425938},
-  category = {isls}
+	title={"Internet from Space" without Inter-satellite Links},
+	author={Hauri, Yannick and Bhattacherjee, Debopam and Grossmann, Manuel and Singla, Ankit},
+	booktitle={Proceedings of the 19th ACM Workshop on Hot Topics in Networks},
+	pages={205--211},
+	year={2020},
+	doi = {10.1145/3422604.3425938},
+	category = {isls},
+	abstract = {Buoyed by advances in space technology, several firms are planning satellite constellations to offer broadband Internet service. While these developments are happening quickly, there are also many uncertainties about the design of these networks. A key open question is whether or not they will incorporate direct connectivity between satellites, instead of only ground-satellite connections. We compare the network behavior resulting from the two outcomes of that question. Our analysis shows that inter-satellite links substantially reduce the temporal variations in latency, add greater resilience to weather, and could yield more than 3x the throughput achieved without such links. Thus, whether this one design element pans out could have a large bearing on the performance, reliability, and economics of these networks.}
 }
 
 
 % General reference
 
 @book{united2023large,
-  title={Large Constellations of Low-Altitude Satellites: A Primer},
-  author={ {United States Congressional Budget Office} and Bennett, Michael J and Kramer, Corinne},
-  year={2023},
-  publisher={Congressional Budget Office},
-  url = {https://www.cbo.gov/publication/58794},
-  category = {general}
+	title={Large Constellations of Low-Altitude Satellites: A Primer},
+	author={ {United States Congressional Budget Office} and Bennett, Michael J and Kramer, Corinne},
+	year={2023},
+	publisher={Congressional Budget Office},
+	url = {https://www.cbo.gov/publication/58794},
+	category = {general},
+	abstract = {In recent years, commercial investment in space has greatly increased, with emphasis on low altitudes—about 300 kilometers (km) to 2,000 km (or roughly 190 miles to 1,240 miles) above the Earth. Today, several companies plan to build and launch very large constellations of satellites in orbits at those altitudes. Similarly, the Department of Defense (DoD) has begun to plan for new large constellations of satellites at lower orbits to make the performance of their satellite missions more resilient against interference and attack by adversaries.
+
+In this report, the Congressional Budget Office provides an introduction to the advantages of and challenges for constellations of low-altitude satellites. In particular, the report describes the effects that orbital altitude has on the design of satellites and constellations of those satellites, focusing on DoD’s Earth-observation and communications missions. The highlights of that review include the following:
+
+Most satellites operate in roughly circular orbits between about 300 km and about 36,000 km above the Earth. Those orbits are separated into three categories: Low-Earth orbits (LEOs) range from 300 km to 2,000 km above the Earth’s surface; medium-Earth orbits (MEOs) range from 2,000 km to about 35,000 km; and geosynchronous orbits (GEOs) operate at 35,786 km.
+Satellites in LEO generally are smaller, cost less, and have shorter operational lifetimes than those at higher altitudes. More LEO satellites are generally needed to achieve coverage comparable to smaller constellations at higher altitudes, and the LEO satellites need to be replaced more often to maintain the constellation.
+Operating in LEO potentially allows for more timely communications, higher resolution imagery, and, for large constellations, greater resilience against attack or interference because many satellites share the same mission. However, LEO satellites can view a given point on Earth for only about 10 minutes, making constellation management more complex if continuous communication or observation is required.
+The costs of maintaining LEO constellations for many years are potentially higher than MEO or GEO constellations with comparable coverage, but LEO costs could be reduced if mass production significantly decreased unit costs or if launch costs continued to decline.}
 }

@@ -13,6 +13,7 @@ scholar:
   # How each entry is drawn. jekyll-scholar provides: reference (the formatted
   # APA citation, wrapped in <span id="KEY">), key, type, and entry (all fields).
   bibliography_template: |
+    {%- assign abstract = entry.abstract | strip -%}
     {%- comment -%} First web address in url, howpublished or note, without any \url{...} wrapper. {%- endcomment -%}
     {%- assign link_text = entry.url | append: " " | append: entry.howpublished | append: " " | append: entry.note -%}
     {%- assign weblink = "" -%}
@@ -43,9 +44,13 @@ scholar:
     <details class="bib-entry" data-key="{{ key }}" data-year="{{ entry.year }}" data-sort-name="{{ sortname | escape }}" data-authors="{{ entry.author | escape }}" data-title="{{ entry.title | escape }}">
     <summary>
     <span class="bib-ref">{{ reference }}</span>
-    <span class="bib-tags"><span class="bib-tag">{{ kind }}</span></span>
+    <span class="bib-tags"><span class="bib-tag">{{ kind }}</span>{% if abstract != "" %}<span class="bib-tag bib-tag-abs">Abstract</span>{% endif %}</span>
     </summary>
     <div class="bib-body">
+    {%- if abstract != "" %}
+    <p class="bib-label">Abstract</p>
+    <p class="bib-abstract">{{ abstract | escape }}</p>
+    {%- endif %}
     <p class="bib-actions">
     {%- if entry.doi and entry.doi != "" %}<a class="bib-btn" href="https://doi.org/{{ entry.doi }}" target="_blank" rel="noopener">DOI</a>{% endif %}
     {%- if weblink != "" %}<a class="bib-btn" href="{{ weblink }}" target="_blank" rel="noopener">{% if type == "misc" %}Website{% else %}Link{% endif %}</a>{% endif %}
@@ -60,13 +65,6 @@ scholar:
 
 <!-- Big thanks to Gemma Danks: https://open-research.gemmadanks.com/tutorials/how-to-use-jekyll-scholar-with-github-pages/ -->
 
-<!--
-  Sections come from _data/bibliography.yml; each entry's section is the
-  `category` field in bibliography/references.bib. The entry template is in
-  the front matter above; styles and behaviour are in
-  assets/css/bibliography.css and assets/js/bibliography.js.
--->
-
 <link rel="stylesheet" href="{{ '/assets/css/bibliography.css' | relative_url }}">
 
 {%- assign bib_ids = site.data.bibliography | map: "id" -%}
@@ -76,7 +74,7 @@ scholar:
 <header class="bib-head">
 <h1>References</h1>
 <p>Papers, reports, and tools cited across this site, grouped by topic.
-Click any entry for its links and BibTeX, and use the search box to look across authors and titles.
+Click any entry for its abstract, links, and BibTeX, and use the search box to look across authors, titles, and abstracts.
 The full list is also available as <a href="https://github.com/SpaceNet-CoP/spacenet-cop.github.io/raw/refs/heads/main/bibliography/references.bib">BibTeX</a>.</p>
 </header>
 
@@ -91,6 +89,7 @@ The full list is also available as <a href="https://github.com/SpaceNet-CoP/spac
 <button type="button" data-scope="all" aria-pressed="true">All</button>
 <button type="button" data-scope="author" aria-pressed="false">Author</button>
 <button type="button" data-scope="title" aria-pressed="false">Title</button>
+<button type="button" data-scope="abstract" aria-pressed="false">Abstract</button>
 </div>
 </div>
 <div class="bib-meta">
@@ -133,6 +132,7 @@ The full list is also available as <a href="https://github.com/SpaceNet-CoP/spac
 {% bibliography --query {{ bib_other_query }} %}
 </section>
 <p class="bib-empty-results" id="bib-no-results" hidden>No references match your search.</p>
+<p class="bib-notice">Abstracts are quoted from the cited works for reference and remain the copyright of their respective authors and publishers. They are not covered by this site's MIT License. If you hold rights to an abstract and would like it removed, please <a href="https://github.com/SpaceNet-CoP/spacenet-cop.github.io/issues">open an issue</a>.</p>
 <p class="bib-back"><a href="{{ '/' | relative_url }}">Back</a></p>
 </div>
 </div>
