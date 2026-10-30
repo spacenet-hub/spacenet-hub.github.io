@@ -24,7 +24,7 @@
     <div class="clock-block">
       <div class="clock-label">Simulation time</div>
       <div id="clock" class="clock">T+ 00:00:00</div>
-      <div class="clock-sub"><span id="speedLabel">300&times;</span> &middot; 24 h repeat</div>
+      <div class="clock-sub"><span id="speedLabel">300&times;</span> &middot; continuous J2 propagation</div>
     </div>
 
     <div class="time-controls">
@@ -44,12 +44,12 @@
       <section class="block mission-block">
         <div class="block-head">
           <h2>Mission</h2>
-          <span class="tag">LEO &middot; 550 km</span>
+          <span class="tag">LEO &middot; 550 km &middot; J2</span>
         </div>
         <div class="brief">
           Grow the constellation one orbital plane at a time. Every deployment is
-          propagated for 24 hours; if any two satellites pass within 10&nbsp;km,
-          the plane is rejected.
+          propagated for 24 hours with a secular J2 model; if any two satellites
+          pass within 10&nbsp;km, the plane is rejected.
         </div>
 
         <div class="stat-grid">
@@ -138,11 +138,11 @@
           <div><i class="dot safe"></i>Safe &mdash; clearance &gt; 10 km</div>
           <div><i class="dot warn"></i>Danger &mdash; 1&ndash;10 km</div>
           <div><i class="dot danger"></i>Collision &mdash; &lt; 1 km</div>
-          <div><i class="line"></i>Orbital plane at 550 km altitude</div>
+          <div><i class="line"></i>Orbital plane at 550 km (J2-precessing)</div>
         </div>
         <div class="micro">
-          Circular Keplerian orbits &middot; &mu; = 398,600.4418 km&sup3;/s&sup2; &middot;
-          period 95.5 min &middot; n = &radic;(&mu;/a&sup3;)
+          Circular orbits &middot; first-order secular J2 &middot; &mu; = 398,600.4418 km&sup3;/s&sup2; &middot;
+          J<sub>2</sub> = 1.0826&times;10<sup>&minus;3</sup> &middot; RAAN drift &prop; cos&nbsp;<em>i</em>
         </div>
       </section>
     </div>
@@ -173,9 +173,9 @@
           <div><span>Analysis</span><b id="aEpochs">&mdash;</b></div>
         </div>
 
-        <canvas id="profile" class="profile" title="24-hour clearance profile sampled every 300 s. Brief conjunctions are verified at 10 s and refined. Click to scrub time."></canvas>
+        <canvas id="profile" class="profile" title="24-hour clearance profile sampled every 300 s from a full 24 h propagation at 10 s with secular J2. Brief conjunctions are refined. Click to scrub time."></canvas>
         <div class="profile-caption">
-          <span>24 h clearance profile &middot; log scale</span>
+          <span>24 h clearance profile &middot; 300 s samples &middot; log scale</span>
           <span id="profileCursor">T+00:00</span>
         </div>
 

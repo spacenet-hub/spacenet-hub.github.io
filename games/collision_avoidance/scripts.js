@@ -6,13 +6,27 @@
 
    Physics
    -------
-   Every satellite is on a circular Keplerian orbit at the same altitude.
-   The state is propagated analytically in Earth-Centered Inertial (ECI)
-   coordinates:
+   Every satellite is on a circular orbit at the same mean altitude and is
+   propagated analytically in Earth-Centered Inertial (ECI) coordinates.
+   The secular J2 perturbation (Earth's oblateness) is included to first
+   order. It does not change a, e or i, but it makes the mean motion and the
+   RAAN drift depend on inclination:
 
-       u(t) = M0 + n t,          n = sqrt(mu / a^3)
-       r_PQW = [a cos u, a sin u, 0]
-       r_ECI = Rz(RAAN) Rx(i) r_PQW
+       n_J2    = n0 [1 + 3/4 J2 (R/a)^2 (3 cos^2 i - 1)]
+       RAANdot = -3/2 n0 J2 (R/a)^2 cos i
+
+       u(t)   = M0 + n_J2 t
+       RAAN(t)= RAAN0 + RAANdot t
+       r_PQW  = [a cos u, a sin u, 0]
+       r_ECI  = Rz(RAAN(t)) Rx(i) r_PQW
+
+   For a circular orbit the perigee is degenerate, so only the sum of the
+   argument of perigee and the mean anomaly is physical. The model fixes the
+   undefined perigee and uses the J2-corrected mean motion as the along-track
+   rate; this keeps e = 0 well defined while retaining the inclination-
+   dependent along-track drift. Different inclinations therefore precess in
+   RAAN and drift along-track at different rates, which is the physically
+   important J2 effect for constellation design.
 
    Safety is decided only by propagating the constellation and taking
    pairwise 3D Euclidean distances. There are no scripted or random
@@ -20,12 +34,12 @@
 
    Analysis
    --------
-   1. The full constellation is sampled for 24 hours at 300 s (the
-      specification's official screening grid).
-   2. Because all orbits share the same semi-major axis and mean motion,
-      the relative geometry repeats once per orbital period. A 10 s
-      verification sweep over one period makes sure a brief conjunction
-      between two 300 s samples cannot be missed.
+   1. J2 destroys the old shortcut that relative geometry repeats every
+      orbital period: two planes with different inclinations drift apart in
+      RAAN over the day. The full constellation is therefore propagated for
+      the entire 24 hours at 10 s.
+   2. The official 300 s screening profile is sampled from the same pass,
+      so the chart and the safety decision use identical trajectories.
    3. Candidate minima below 250 km are refined with a golden-section
       search, giving a precise closest-approach distance and time.
    ========================================================================= */
@@ -37,12 +51,12 @@ const MU = 398600.4418;                 // km^3 / s^2
 const R_E = 6371.0;                     // km, mean Earth radius
 const ALTITUDE = 550.0;                 // km, common constellation altitude
 const A_SMA = R_E + ALTITUDE;           // km, semi-major axis
-const N_MEAN = Math.sqrt(MU / (A_SMA * A_SMA * A_SMA)); // rad/s
-const PERIOD = 2 * Math.PI / N_MEAN;    // s
+const N_MEAN = Math.sqrt(MU / (A_SMA * A_SMA * A_SMA)); // rad/s, Keplerian
+const J2 = 1.08262668e-3;               // Earth's second zonal harmonic
 const WE = 7.2921159e-5;                // rad/s, Earth rotation
 const DAY = 86400;                      // s
-const COARSE_STEP = 300;                // s, official screening timestep
-const FINE_STEP = 10;                   // s, verification timestep
+const COARSE_STEP = 300;                // s, profile / screening timestep
+const FINE_STEP = 10;                   // s, full-day conjunction sweep timestep
 const SAFE_KM = 10;                     // > 10 km  => SAFE
 const COLLISION_KM = 1;                 // <  1 km  => COLLISION
 const MAX_SATS = 120;
@@ -101,7 +115,7 @@ const state = {
   previewArmed: false,   // becomes true once the player touches a control
   previewTimer: null,
 
-  simTime: 0,            // seconds, 0..86400
+  simTime: 0,            // seconds, continuous (clock displays time-of-day)
   speed: 300,
   paused: false,
 
@@ -123,21 +137,60 @@ const state = {
    ORBITAL MECHANICS
    ========================================================================= */
 
-/** Build one satellite on a circular orbit. */
+/**
+ * First-order secular J2 rates for a circular orbit at A_SMA.
+ *
+ * J2 is axisymmetric, so in the orbit-averaged (secular) model the
+ * semi-major axis, eccentricity and inclination stay constant. What changes
+ * is the orientation of the orbit: the node regresses and the argument of
+ * latitude advances at a slightly different rate. Both rates depend on
+ * inclination, which is exactly why mixed-inclination constellations cannot
+ * be treated as repeating every Keplerian period.
+ *
+ * For a circular orbit the argument of perigee is undefined, so the model
+ * fixes it and propagates the J2-corrected mean motion as the along-track
+ * rate. The perigee precession is a gauge choice at e = 0 and is not added
+ * separately.
+ *
+ * @param {number} incDeg inclination in degrees
+ * @returns {{n:number, raanDot:number}} rad/s
+ */
+function j2Rates(incDeg) {
+  const inc = incDeg * D2R;
+  const cosI = Math.cos(inc);
+  const cosI2 = cosI * cosI;
+  const fac = J2 * (R_E / A_SMA) * (R_E / A_SMA);
+
+  // RAAN is singular at i = 0: the node is undefined, so a finite nodal
+  // rate would incorrectly rotate an equatorial orbit's phase. Fade the
+  // nodal rate to zero over the first 2 degrees. The physical plane change
+  // suppressed by this is O(sin i * RAANdot), below 0.04 deg/day.
+  const s = clamp(incDeg / 2, 0, 1);
+  const nodeScale = s * s * (3 - 2 * s);
+
+  return {
+    // J2-corrected mean motion (used as the along-track rate for e = 0).
+    n: N_MEAN * (1 + 0.75 * fac * (3 * cosI2 - 1)),
+    // Secular nodal regression: west for prograde, east for retrograde.
+    raanDot: -1.5 * N_MEAN * fac * cosI * nodeScale
+  };
+}
+
+/** Build one satellite on a circular J2-precessing orbit. */
 function createSat(plane, index) {
-  const raan = plane.raan * D2R;
   const inc = plane.inc * D2R;
+  const rates = j2Rates(plane.inc);
   return {
     plane,
     index,
     a: A_SMA,                                          // semi-major axis, km
     inc: plane.inc,                                    // inclination, deg
-    raan: plane.raan,                                  // RAAN, deg
+    raan: plane.raan,                                  // RAAN at epoch, deg
     m0: (plane.phase + index * 360 / plane.count) * D2R, // mean anomaly at epoch
-    cO: Math.cos(raan),
-    sO: Math.sin(raan),
     cI: Math.cos(inc),
     sI: Math.sin(inc),
+    raanDot: rates.raanDot,                            // rad/s
+    uDot: rates.n,                                     // rad/s, argument of latitude
     label: plane.label + "-S" + (index + 1)
   };
 }
@@ -151,6 +204,7 @@ function createPlane(params, id) {
     raan: params.raan,
     count: params.count,
     phase: params.phase,
+    raanDot: j2Rates(params.inc).raanDot,              // rad/s
     color: PLANE_COLORS[(id - 1) % PLANE_COLORS.length],
     sats: []
   };
@@ -163,20 +217,24 @@ function createPlane(params, id) {
  * Writes [x, y, z] in ECI kilometres into `out`.
  */
 function satPos(sat, t, out) {
-  const u = sat.m0 + N_MEAN * t;
+  const u = sat.m0 + sat.uDot * t;
+  const raan = sat.raan * D2R + sat.raanDot * t;
   const cu = Math.cos(u);
   const su = Math.sin(u);
+  const cO = Math.cos(raan);
+  const sO = Math.sin(raan);
   const a = sat.a;
-  out[0] = a * (sat.cO * cu - sat.sO * sat.cI * su);
-  out[1] = a * (sat.sO * cu + sat.cO * sat.cI * su);
+  out[0] = a * (cO * cu - sO * sat.cI * su);
+  out[1] = a * (sO * cu + cO * sat.cI * su);
   out[2] = a * (sat.sI * su);
   return out;
 }
 
-/** Position of a point at argument of latitude u on a plane's ring. */
-function planePos(plane, u, out) {
-  const cO = Math.cos(plane.raan * D2R);
-  const sO = Math.sin(plane.raan * D2R);
+/** Position of a point at argument of latitude u on a plane's ring at time t. */
+function planePos(plane, u, out, t = 0) {
+  const raan = plane.raan * D2R + plane.raanDot * t;
+  const cO = Math.cos(raan);
+  const sO = Math.sin(raan);
   const cI = Math.cos(plane.inc * D2R);
   const sI = Math.sin(plane.inc * D2R);
   const cu = Math.cos(u);
@@ -202,8 +260,8 @@ function pairSqDist(satA, satB, t) {
 /** Golden-section minimization of squared distance around t0. */
 function refineClosest(satA, satB, t0, halfWindow) {
   const phi = (Math.sqrt(5) - 1) / 2;
-  let lo = t0 - halfWindow;
-  let hi = t0 + halfWindow;
+  let lo = Math.max(0, t0 - halfWindow);
+  let hi = Math.min(DAY, t0 + halfWindow);
   let c = hi - phi * (hi - lo);
   let d = lo + phi * (hi - lo);
   let fc = pairSqDist(satA, satB, c);
@@ -236,19 +294,6 @@ function statusFor(distance) {
   return "SAFE";
 }
 
-/**
- * Occurrence of a periodic close approach nearest to `reference`
- * (both in seconds). Adding whole orbital periods does not change the
- * inertial geometry.
- */
-function occurrenceNear(tBase, reference) {
-  const base = mod(tBase, PERIOD);
-  let t = base + Math.round((reference - base) / PERIOD) * PERIOD;
-  if (t < 0) t += PERIOD;
-  if (t > DAY) t -= PERIOD;
-  return t;
-}
-
 /* =========================================================================
    CONJUNCTION ANALYSIS
    ========================================================================= */
@@ -262,6 +307,9 @@ function occurrenceNear(tBase, reference) {
 function analyzeConstellation(sats, opts = {}) {
   const started = performance.now();
   const n = sats.length;
+  const coarseSteps = Math.ceil(DAY / COARSE_STEP);      // 289 profile samples
+  const fineSteps = Math.round(DAY / FINE_STEP);         // 8640 ten-second intervals
+  const coarseStride = Math.round(COARSE_STEP / FINE_STEP); // 30 fine steps per profile sample
 
   if (n < 2) {
     return {
@@ -270,28 +318,51 @@ function analyzeConstellation(sats, opts = {}) {
       minSep: Infinity,
       minTime: 0,
       status: "SAFE",
-      profile: new Float64Array(DAY / COARSE_STEP + 1).fill(Infinity),
-      epochs: DAY / COARSE_STEP + 1,
-      fineSamples: 0,
+      profile: new Float64Array(coarseSteps + 1).fill(Infinity),
+      epochs: coarseSteps + 1,
+      fineSamples: fineSteps + 1,
       pairCount: 0,
       refined: false,
       coarseMin: Infinity,
       coarseTime: 0,
+      coarsePair: [0, 0],
       durationMs: 0
     };
   }
 
-  /* ---- 1. official 24 h / 300 s screening sweep ---- */
-  const coarseSteps = Math.ceil(DAY / COARSE_STEP);
-  const profile = new Float64Array(coarseSteps + 1);
+  const profile = new Float64Array(coarseSteps + 1).fill(Infinity);
   const pos = new Float64Array(n * 3);
+  const pairCount = n * (n - 1) / 2;
+
+  const pairMinSq = new Float64Array(pairCount).fill(Infinity);
+  const pairTime = new Float64Array(pairCount);
+  const pairI = new Int16Array(pairCount);
+  const pairJ = new Int16Array(pairCount);
+
+  // The pair table is fixed for the whole sweep; build it once.
+  let q = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      pairI[q] = i;
+      pairJ[q] = j;
+      q++;
+    }
+  }
 
   let coarseBestSq = Infinity;
   let coarseTime = 0;
   let coarsePair = [0, 1];
+  let fineBestSq = Infinity;
+  let fineBestPair = 0;
+  let fineBestT = 0;
 
-  for (let k = 0; k <= coarseSteps; k++) {
-    const t = k * COARSE_STEP;
+  /* ---- single 24 h propagation at 10 s ----
+     J2 makes the mean motion and RAAN drift inclination-dependent, so the
+     relative geometry no longer repeats each orbital period. The whole day
+     must be screened; the 300 s profile is sampled from this same pass. */
+  for (let k = 0; k <= fineSteps; k++) {
+    const t = k * FINE_STEP;
+
     for (let i = 0; i < n; i++) {
       satPos(sats[i], t, _pa);
       pos[i * 3] = _pa[0];
@@ -300,6 +371,9 @@ function analyzeConstellation(sats, opts = {}) {
     }
 
     let stepMinSq = Infinity;
+    let stepMinPair = 0;
+    q = 0;
+
     for (let i = 0; i < n; i++) {
       const ix = i * 3;
       const x1 = pos[ix], y1 = pos[ix + 1], z1 = pos[ix + 2];
@@ -309,98 +383,58 @@ function analyzeConstellation(sats, opts = {}) {
         const dy = y1 - pos[jx + 1];
         const dz = z1 - pos[jx + 2];
         const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 < stepMinSq) stepMinSq = d2;
-        if (d2 < coarseBestSq) {
-          coarseBestSq = d2;
-          coarseTime = t;
-          coarsePair[0] = i;
-          coarsePair[1] = j;
+
+        if (d2 < stepMinSq) {
+          stepMinSq = d2;
+          stepMinPair = q;
         }
-      }
-    }
-    profile[k] = Math.sqrt(stepMinSq);
-  }
-
-  /* ---- 2. fine verification over one relative period ---- */
-  // All satellites share a and n, so the pair geometry repeats with PERIOD.
-  const fineSteps = Math.ceil(PERIOD / FINE_STEP) + 1;
-  const finePos = new Float32Array(n * fineSteps * 3);
-  for (let i = 0; i < n; i++) {
-    for (let k = 0; k < fineSteps; k++) {
-      satPos(sats[i], k * FINE_STEP, _pa);
-      const base = (i * fineSteps + k) * 3;
-      finePos[base] = _pa[0];
-      finePos[base + 1] = _pa[1];
-      finePos[base + 2] = _pa[2];
-    }
-  }
-
-  const pairCount = n * (n - 1) / 2;
-  const pairMin = new Float64Array(pairCount);
-  const pairTime = new Float64Array(pairCount);
-  const pairI = new Int16Array(pairCount);
-  const pairJ = new Int16Array(pairCount);
-
-  let fineBestSq = Infinity;
-  let fineBestPair = 0;
-  let fineBestT = 0;
-  let p = 0;
-
-  for (let i = 0; i < n; i++) {
-    const iBase = i * fineSteps * 3;
-    for (let j = i + 1; j < n; j++) {
-      const jBase = j * fineSteps * 3;
-      let minSq = Infinity;
-      let minK = 0;
-
-      for (let k = 0; k < fineSteps; k++) {
-        const o = k * 3;
-        const dx = finePos[iBase + o] - finePos[jBase + o];
-        const dy = finePos[iBase + o + 1] - finePos[jBase + o + 1];
-        const dz = finePos[iBase + o + 2] - finePos[jBase + o + 2];
-        const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 < minSq) {
-          minSq = d2;
-          minK = k;
+        if (d2 < pairMinSq[q]) {
+          pairMinSq[q] = d2;
+          pairTime[q] = t;
         }
+        q++;
       }
+    }
 
-      pairMin[p] = Math.sqrt(minSq);
-      pairTime[p] = minK * FINE_STEP;
-      pairI[p] = i;
-      pairJ[p] = j;
-
-      if (minSq < fineBestSq) {
-        fineBestSq = minSq;
-        fineBestPair = p;
-        fineBestT = minK * FINE_STEP;
+    if (k % coarseStride === 0) {
+      const ci = k / coarseStride;
+      profile[ci] = Math.sqrt(stepMinSq);
+      if (stepMinSq < coarseBestSq) {
+        coarseBestSq = stepMinSq;
+        coarseTime = t;
+        coarsePair = [pairI[stepMinPair], pairJ[stepMinPair]];
       }
-      p++;
+    }
+
+    if (stepMinSq < fineBestSq) {
+      fineBestSq = stepMinSq;
+      fineBestPair = stepMinPair;
+      fineBestT = t;
     }
   }
 
-  /* ---- 3. refine close candidates ---- */
+  /* ---- refine every pair that came within 250 km at any 10 s sample ----
+     A 10 s sample can miss the true minimum by at most about half the
+     relative motion in 10 s, so any dangerous pass is guaranteed to enter
+     this list. Distant minima keep the sampled value and time. */
   const candidates = [];
-  const seen = new Set();
-  for (let q = 0; q < pairCount; q++) {
-    if (pairMin[q] < 250) {
-      candidates.push(q);
-      seen.add(q);
+  for (let p = 0; p < pairCount; p++) {
+    if (pairMinSq[p] < 250 * 250) {
+      candidates.push(p);
     }
   }
-  if (!seen.has(fineBestPair)) candidates.push(fineBestPair);
 
   let bestSq = Infinity;
   let bestT = fineBestT;
   let bestPair = fineBestPair;
   let refined = false;
 
-  for (const q of candidates) {
-    const r = refineClosest(sats[pairI[q]], sats[pairJ[q]], pairTime[q], FINE_STEP * 1.5);
+  for (const p of candidates) {
+    const r = refineClosest(sats[pairI[p]], sats[pairJ[p]], pairTime[p], FINE_STEP * 1.5);
     if (r.d2 < bestSq) {
       bestSq = r.d2;
       bestT = r.t;
-      bestPair = q;
+      bestPair = p;
       refined = true;
     }
   }
@@ -409,17 +443,16 @@ function analyzeConstellation(sats, opts = {}) {
   if (!isFinite(bestSq)) bestSq = fineBestSq;
 
   const minSep = Math.sqrt(Math.max(0, bestSq));
-  const minTime = occurrenceNear(bestT, coarseTime);
 
   return {
     sats,
     pair: [pairI[bestPair], pairJ[bestPair]],
     minSep,
-    minTime,
+    minTime: bestT,
     status: statusFor(minSep),
     profile,
     epochs: coarseSteps + 1,
-    fineSamples: fineSteps,
+    fineSamples: fineSteps + 1,
     pairCount,
     refined,
     coarseMin: Math.sqrt(coarseBestSq),
@@ -444,20 +477,31 @@ function fmtDeg(v, digits = 1) {
 }
 
 function fmtClock(t) {
+  const day = Math.floor(t / DAY);
   t = mod(t, DAY);
   const h = Math.floor(t / 3600);
   const m = Math.floor((t % 3600) / 60);
   const s = Math.floor(t % 60);
-  return "T+ " + String(h).padStart(2, "0") + ":" +
+  return "T+ " + (day > 0 ? day + "d " : "") +
+         String(h).padStart(2, "0") + ":" +
          String(m).padStart(2, "0") + ":" +
          String(s).padStart(2, "0");
 }
 
 function fmtClockShort(t) {
+  const day = Math.floor(t / DAY);
   t = mod(t, DAY);
   const h = Math.floor(t / 3600);
   const m = Math.floor((t % 3600) / 60);
-  return "T+" + String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+  return "T+" + (day > 0 ? day + "d " : "") +
+    String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+}
+
+/** Signed RAAN drift in degrees per day from a rad/s rate. */
+function fmtDrift(radPerSec) {
+  const d = radPerSec * R2D * DAY;
+  if (Math.abs(d) < 0.005) return "0.00\u00b0/day";
+  return (d > 0 ? "+" : "\u2212") + Math.abs(d).toFixed(2) + "\u00b0/day";
 }
 
 function closestPair(analysis) {
@@ -512,8 +556,9 @@ function geometryNote(newPlane, oldPlane) {
   if (coplanar) {
     if (bothEquatorial && dro > 0.75) {
       parts.push("Both planes are equatorial: at <b>i = 0&deg;</b> RAAN is degenerate, " +
-        "so every equatorial plane is the same ring. Changing &Omega; alone cannot " +
-        "separate the satellites.");
+        "so every equatorial plane is the same ring. A change in &Omega; is just a " +
+        "phase shift along that ring; separation is controlled by where the satellites " +
+        "sit in phase.");
     } else {
       const gap = minPhaseGap(newPlane, oldPlane);
       const chord = 2 * A_SMA * Math.sin(gap * D2R / 2);
@@ -546,6 +591,18 @@ function geometryNote(newPlane, oldPlane) {
         "regions, so a RAAN difference does not prevent close passes near the poles."
       : "One plane is near-polar: high-inclination orbits funnel through the polar " +
         "regions, where crossings are harder to separate with RAAN alone.");
+  }
+
+  // J2 nodal precession scales with cos(i), so planes at different
+  // inclinations shear apart over the 24 hour screen.
+  if (di > 0.5) {
+    parts.push("J2 nodal precession is inclination-dependent: <b>" + newPlane.label +
+      "</b> drifts <b>" + fmtDrift(newPlane.raanDot) + "</b> while <b>" +
+      oldPlane.label + "</b> drifts <b>" + fmtDrift(oldPlane.raanDot) +
+      "</b>, so &Delta;&Omega; changes across the day and the crossing points move.");
+  } else {
+    parts.push("Both planes have nearly the same inclination, so J2 precesses them at " +
+      "almost the same rate; their relative geometry stays close to fixed over the day.");
   }
 
   if (newPlane.count > 1) {
@@ -642,7 +699,9 @@ function buildFeedback(plane, analysis, prevAnalysis) {
     chunks.push("<span class=\"hintline\">Satellites must not occupy nearly the same " +
       "location at the same time. Try a different <b>RAAN</b> to move the intersection " +
       "line, or a different <b>phase offset</b> to change arrival time. At 550 km, one " +
-      "degree of phase is about " + degKm + " km along the orbit.</span>");
+      "degree of phase is about " + degKm + " km along the orbit. J2 also precesses each " +
+      "plane at a rate set by its inclination, so a pair that is separated at epoch can " +
+      "still converge later in the 24 hour screen.</span>");
   }
 
   /* ---- metric chips ---- */
@@ -652,6 +711,7 @@ function buildFeedback(plane, analysis, prevAnalysis) {
   chips.push("<span class=\"chip\">i " + fmtDeg(plane.inc) + "</span>");
   chips.push("<span class=\"chip\">&Omega; " + fmtDeg(plane.raan, 0) + "</span>");
   chips.push("<span class=\"chip\">&phi; " + fmtDeg(plane.phase, 0) + "</span>");
+  chips.push("<span class=\"chip\">J2 &Omega;&#775; " + fmtDrift(plane.raanDot) + "</span>");
 
   if (a && b && a.plane.id !== b.plane.id) {
     const di = Math.abs(a.plane.inc - b.plane.inc);
@@ -679,12 +739,13 @@ function buildSeedFeedback(analysis) {
   return "<b class=\"good\">Seed constellation online.</b> " + plane.count +
     " satellites share one <b>" + fmtDeg(plane.inc, 0) + "</b> inclined plane. " +
     "Neighbouring satellites are <b>" + fmtKm(chord) + "</b> apart, so the intra-plane " +
-    "baseline is safe. Deploy a second plane and watch how RAAN moves the crossing " +
+    "baseline is safe. This plane's node drifts <b>" + fmtDrift(plane.raanDot) +
+    "</b> under J2. Deploy a second plane and watch how RAAN moves the crossing " +
     "points while phase changes the time a satellite arrives there." +
     "<span class=\"chips\">" +
     "<span class=\"chip good\">" + analysis.sats.length + " sats</span>" +
     "<span class=\"chip\">min " + fmtKm(analysis.minSep) + "</span>" +
-    "<span class=\"chip\">289 epochs &middot; 300 s</span>" +
+    "<span class=\"chip\">24 h &middot; 10 s J2 propagation</span>" +
     "</span>";
 }
 
@@ -1111,8 +1172,9 @@ function updateAnalysisPanel() {
     ui.aPair.textContent = a ? a.label + " \u2194 " + b.label : "\u2014";
     ui.aEpochs.textContent = analysis.epochs + " \u00d7 300 s \u00b7 " +
       analysis.pairCount.toLocaleString("en-US") + " pairs";
-    ui.aEpochs.title = "24 h at 300 s, plus a " + analysis.fineSamples +
-      "-sample verification sweep at 10 s; close candidates are refined continuously.";
+    ui.aEpochs.title = "Full 24 h propagated at 10 s (" + analysis.fineSamples +
+      " samples) with secular J2; the 300 s clearance profile is sampled from the " +
+      "same pass and close candidates are refined continuously.";
     ui.btnViewClose.disabled = !analysis.pair;
   } else {
     ui.analysisMode.textContent = "CURRENT";
@@ -1419,8 +1481,8 @@ function drawProfile() {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  /* current simulation cursor */
-  const px = xFor(state.simTime);
+  /* current simulation cursor (the profile covers the first 24 h) */
+  const px = xFor(mod(state.simTime, DAY));
   ctx.save();
   ctx.setLineDash([2, 3]);
   ctx.strokeStyle = "rgba(255, 255, 255, 0.40)";
@@ -1623,7 +1685,7 @@ function renderScene() {
   function buildRing(plane, preview) {
     const pts = [];
     for (let k = 0; k <= ringRes; k++) {
-      planePos(plane, TAU * k / ringRes, _pa);
+      planePos(plane, TAU * k / ringRes, _pa, state.simTime);
       pts.push(project(_pa));
     }
     const front = new Path2D();
@@ -1908,9 +1970,11 @@ function updateTooltip(mx, my) {
   if (best.ghost) {
     html += "<br><span style=\"color:var(--warn)\">Proposed plane &mdash; not committed</span>";
   }
+  const raanNow = mod(sat.raan + sat.raanDot * state.simTime * R2D, 360);
   html += "<br>Plane " + sat.plane.label + " &middot; " + sat.plane.count + " sats" +
-    "<br>i " + fmtDeg(sat.plane.inc) + " &middot; &Omega; " + fmtDeg(sat.plane.raan, 0) +
+    "<br>i " + fmtDeg(sat.plane.inc) + " &middot; &Omega; " + fmtDeg(raanNow, 1) +
     "<br>M<sub>0</sub> " + fmtDeg(mod(sat.m0 * R2D, 360), 0) + " &middot; h 550 km" +
+    "<br>J2 &Omega;&#775; " + fmtDrift(sat.raanDot) +
     "<br>Nearest now: <b>" + fmtKm(Math.sqrt(nearest)) + "</b>" +
     (nearestSat ? " (" + nearestSat.label + ")" : "");
 
@@ -1999,7 +2063,10 @@ function loop(now) {
   lastFrame = now;
 
   if (!state.paused) {
-    state.simTime = mod(state.simTime + dt * state.speed, DAY);
+    // J2 makes the orbit orientation drift, so the animation is continuous
+    // rather than a 24 h loop: wrapping back to t = 0 would visibly snap every
+    // plane. The clock still displays time-of-day (plus a day count).
+    state.simTime += dt * state.speed;
   }
 
   renderScene();
