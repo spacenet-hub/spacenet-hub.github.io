@@ -48,8 +48,8 @@
         </div>
         <div class="brief">
           Grow the constellation one orbital plane at a time. Every deployment is
-          propagated for 24 hours with a secular J2 model; if any two satellites
-          pass within 10&nbsp;km, the plane is rejected.
+          propagated for a rolling 24 hours with a secular J2 model; if any two
+          satellites pass within 10&nbsp;km, the plane is rejected.
         </div>
 
         <div class="stat-grid">
@@ -66,7 +66,7 @@
             <b id="planeCount">0</b>
           </div>
           <div class="stat">
-            <span>Committed clearance</span>
+            <span title="Minimum clearance over the current simulation day's rolling 24 h window">Committed clearance</span>
             <b id="committedMin">&mdash;</b>
           </div>
         </div>
@@ -173,9 +173,9 @@
           <div><span>Analysis</span><b id="aEpochs">&mdash;</b></div>
         </div>
 
-        <canvas id="profile" class="profile" title="24-hour clearance profile sampled every 300 s from a full 24 h propagation at 10 s with secular J2. Brief conjunctions are refined. Click to scrub time."></canvas>
+        <canvas id="profile" class="profile" title="Rolling 24-hour clearance profile for the current simulation day, sampled every 300 s from a full 24 h propagation at 10 s with secular J2. Brief conjunctions are refined. Click to scrub time."></canvas>
         <div class="profile-caption">
-          <span>24 h clearance profile &middot; 300 s samples &middot; log scale</span>
+          <span id="profileLabel">Day 1 &middot; 24 h profile &middot; 300 s samples &middot; log scale</span>
           <span id="profileCursor">T+00:00</span>
         </div>
 

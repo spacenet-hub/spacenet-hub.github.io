@@ -36,12 +36,15 @@
    --------
    1. J2 destroys the old shortcut that relative geometry repeats every
       orbital period: two planes with different inclinations drift apart in
-      RAAN over the day. The full constellation is therefore propagated for
-      the entire 24 hours at 10 s.
+      RAAN over the day. The full constellation is therefore propagated at
+      10 s across the whole 24 hour window.
    2. The official 300 s screening profile is sampled from the same pass,
       so the chart and the safety decision use identical trajectories.
    3. Candidate minima below 250 km are refined with a golden-section
       search, giving a precise closest-approach distance and time.
+   4. The screen rolls forward with simulation time: when the clock crosses
+      midnight, the committed constellation and any preview are re-analysed
+      over the new day's window rather than reusing the previous profile.
    ========================================================================= */
 
 /* =========================================================================
@@ -257,11 +260,11 @@ function pairSqDist(satA, satB, t) {
   return dx * dx + dy * dy + dz * dz;
 }
 
-/** Golden-section minimization of squared distance around t0. */
-function refineClosest(satA, satB, t0, halfWindow) {
+/** Golden-section minimization of squared distance around t0, inside a window. */
+function refineClosest(satA, satB, t0, halfWindow, winStart, winEnd) {
   const phi = (Math.sqrt(5) - 1) / 2;
-  let lo = Math.max(0, t0 - halfWindow);
-  let hi = Math.min(DAY, t0 + halfWindow);
+  let lo = Math.max(winStart, t0 - halfWindow);
+  let hi = Math.min(winEnd, t0 + halfWindow);
   let c = hi - phi * (hi - lo);
   let d = lo + phi * (hi - lo);
   let fc = pairSqDist(satA, satB, c);
@@ -298,16 +301,23 @@ function statusFor(distance) {
    CONJUNCTION ANALYSIS
    ========================================================================= */
 /**
- * Analyze a full satellite list over 24 hours.
+ * Analyze a full satellite list over a 24 hour window.
+ *
+ * The window starts at `opts.start` (seconds from epoch, normally a whole
+ * day). This lets the live game re-run the screen as simulation time rolls
+ * into the next day instead of always showing the epoch-day profile.
  *
  * @param {Array} sats
  * @param {Object} [opts]
+ * @param {number} [opts.start=0] window start, seconds from epoch
  * @returns {Object} analysis result
  */
 function analyzeConstellation(sats, opts = {}) {
   const started = performance.now();
   const n = sats.length;
-  const coarseSteps = Math.ceil(DAY / COARSE_STEP);      // 289 profile samples
+  const start = Number.isFinite(opts.start) ? opts.start : 0;
+  const end = start + DAY;
+  const coarseSteps = Math.ceil(DAY / COARSE_STEP);      // 288 intervals -> 289 profile samples
   const fineSteps = Math.round(DAY / FINE_STEP);         // 8640 ten-second intervals
   const coarseStride = Math.round(COARSE_STEP / FINE_STEP); // 30 fine steps per profile sample
 
@@ -316,7 +326,7 @@ function analyzeConstellation(sats, opts = {}) {
       sats,
       pair: null,
       minSep: Infinity,
-      minTime: 0,
+      minTime: start,
       status: "SAFE",
       profile: new Float64Array(coarseSteps + 1).fill(Infinity),
       epochs: coarseSteps + 1,
@@ -324,8 +334,10 @@ function analyzeConstellation(sats, opts = {}) {
       pairCount: 0,
       refined: false,
       coarseMin: Infinity,
-      coarseTime: 0,
+      coarseTime: start,
       coarsePair: [0, 0],
+      start,
+      end,
       durationMs: 0
     };
   }
@@ -358,10 +370,10 @@ function analyzeConstellation(sats, opts = {}) {
 
   /* ---- single 24 h propagation at 10 s ----
      J2 makes the mean motion and RAAN drift inclination-dependent, so the
-     relative geometry no longer repeats each orbital period. The whole day
+     relative geometry no longer repeats each orbital period. The whole window
      must be screened; the 300 s profile is sampled from this same pass. */
   for (let k = 0; k <= fineSteps; k++) {
-    const t = k * FINE_STEP;
+    const t = start + k * FINE_STEP;
 
     for (let i = 0; i < n; i++) {
       satPos(sats[i], t, _pa);
@@ -430,7 +442,8 @@ function analyzeConstellation(sats, opts = {}) {
   let refined = false;
 
   for (const p of candidates) {
-    const r = refineClosest(sats[pairI[p]], sats[pairJ[p]], pairTime[p], FINE_STEP * 1.5);
+    const r = refineClosest(sats[pairI[p]], sats[pairJ[p]], pairTime[p],
+      FINE_STEP * 1.5, start, end);
     if (r.d2 < bestSq) {
       bestSq = r.d2;
       bestT = r.t;
@@ -458,8 +471,46 @@ function analyzeConstellation(sats, opts = {}) {
     coarseMin: Math.sqrt(coarseBestSq),
     coarseTime,
     coarsePair,
+    start,
+    end,
     durationMs: performance.now() - started
   };
+}
+
+/** Start of the whole-day analysis window containing simulation time t. */
+function analysisWindowStart(t) {
+  return Math.floor(t / DAY) * DAY;
+}
+
+/**
+ * Make sure the committed constellation has been screened over the day that
+ * contains the current simulation time. Returns true when a new window was
+ * propagated.
+ */
+function ensureCurrentAnalysis() {
+  const start = analysisWindowStart(state.simTime);
+  if (state.analysis && state.analysis.start === start) return false;
+
+  state.analysis = analyzeConstellation(state.sats, { start });
+  state.lastFeedback = buildWindowFeedback(state.analysis);
+  return true;
+}
+
+/**
+ * Roll the live screen forward when simulation time crosses midnight, and keep
+ * an armed/rejected preview in the same 24 h window as the committed analysis.
+ */
+function refreshRollingAnalysis() {
+  if (!ensureCurrentAnalysis()) return false;
+
+  const pv = state.preview;
+  if (pv && !pv.overflow && pv.plane) {
+    const analysis = analyzeConstellation(state.sats.concat(pv.plane.sats),
+      { start: state.analysis.start });
+    pv.analysis = analysis;
+    pv.feedback = buildFeedback(pv.plane, analysis, state.analysis);
+  }
+  return true;
 }
 
 /* =========================================================================
@@ -749,6 +800,38 @@ function buildSeedFeedback(analysis) {
     "</span>";
 }
 
+/** Rolling summary shown when the live 24 h screen advances to a new day. */
+function buildWindowFeedback(analysis) {
+  const day = Math.floor(analysis.start / DAY) + 1;
+  const { a, b } = closestPair(analysis);
+  const cls = analysis.status === "SAFE" ? "good" :
+    (analysis.status === "COLLISION" ? "bad" : "warn");
+
+  const parts = [];
+  parts.push("<b class=\"" + cls + "\">Day " + day + " rolling screen.</b> " +
+    "The 24 hour window from <b>" + fmtClock(analysis.start) + "</b> to <b>" +
+    fmtClock(analysis.end) + "</b> has been re-propagated at 10 s with secular J2.");
+
+  if (a && b) {
+    parts.push("Closest pair <b>" + a.label + "</b> and <b>" + b.label +
+      "</b> reach <b>" + fmtKm(analysis.minSep) + "</b> at <b>" +
+      fmtClock(analysis.minTime) + "</b>.");
+  }
+
+  parts.push("J2 nodal precession keeps changing the relative plane geometry, so each " +
+    "new day gets its own minimum-distance profile instead of reusing the epoch-day one.");
+
+  const chipCls = analysis.status === "SAFE" ? "good" :
+    (analysis.status === "COLLISION" ? "bad" : "warn");
+  return parts.join(" ") + "<span class=\"chips\">" +
+    "<span class=\"chip " + chipCls + "\">" +
+    analysis.status.toLowerCase() + "</span>" +
+    "<span class=\"chip\">min " + fmtKm(analysis.minSep) + "</span>" +
+    "<span class=\"chip\">day " + day + "</span>" +
+    "<span class=\"chip\">24 h &middot; 10 s J2 propagation</span>" +
+    "</span>";
+}
+
 /** Explanation shown when the design capacity would be exceeded. */
 function buildCapacityFeedback(params, total) {
   return "<b class=\"warn\">Design capacity reached.</b> Another plane of " +
@@ -803,6 +886,7 @@ const ui = {
   aPair: $("aPair"),
   aEpochs: $("aEpochs"),
   profile: $("profile"),
+  profileLabel: $("profileLabel"),
   profileCursor: $("profileCursor"),
   feedback: $("feedback"),
   btnViewClose: $("btnViewClose"),
@@ -895,7 +979,9 @@ function runPreview() {
   }
 
   const plane = createPlane(params, state.nextPlaneId);
-  const analysis = analyzeConstellation(state.sats.concat(plane.sats));
+  ensureCurrentAnalysis();
+  const analysis = analyzeConstellation(state.sats.concat(plane.sats),
+    { start: state.analysis.start });
   const feedback = buildFeedback(plane, analysis, state.analysis);
 
   state.preview = { params, plane, analysis, feedback, overflow: false };
@@ -944,7 +1030,8 @@ function deploy() {
 
   const plane = createPlane(params, state.nextPlaneId);
   const candidateSats = state.sats.concat(plane.sats);
-  const analysis = analyzeConstellation(candidateSats);
+  ensureCurrentAnalysis();
+  const analysis = analyzeConstellation(candidateSats, { start: state.analysis.start });
   const feedback = buildFeedback(plane, analysis, state.analysis);
 
   if (analysis.status === "SAFE") {
@@ -1040,7 +1127,7 @@ function seedMission() {
   state.planes.push(plane);
   state.sats = plane.sats.slice();
 
-  const analysis = analyzeConstellation(state.sats);
+  const analysis = analyzeConstellation(state.sats, { start: 0 });
   state.analysis = analysis;
   state.lastFeedback = buildSeedFeedback(analysis);
   state.score = PLANE_BONUS + plane.count * SAT_POINTS;
@@ -1144,7 +1231,9 @@ function updateAnalysisPanel() {
     ui.btnViewClose.disabled = true;
   } else if (analysis) {
     const proposed = !!pv;
-    ui.analysisMode.textContent = proposed ? "PROPOSED +" + pv.params.count : "CURRENT";
+    const day = Math.floor(analysis.start / DAY) + 1;
+    ui.analysisMode.textContent = (proposed ? "PROPOSED +" + pv.params.count : "CURRENT") +
+      " \u00b7 D" + day;
     ui.analysisMode.style.color = proposed ? "var(--accent-2)" : "var(--accent)";
 
     const kind = analysis.status === "SAFE" ? "safe" :
@@ -1155,13 +1244,13 @@ function updateAnalysisPanel() {
     if (analysis.status === "SAFE") {
       explain = (proposed ? "Proposed plane: all " : "All ") + analysis.sats.length +
         " satellites stay at least " + fmtKm(analysis.minSep) +
-        " apart over the full 24 hour screen.";
+        " apart over the full 24 hour screen (day " + day + ").";
     } else if (analysis.status === "COLLISION") {
       explain = (proposed ? "Proposed plane: a pair" : "A pair") + " reaches " +
-        fmtKm(analysis.minSep) + ", below the 1 km collision threshold.";
+        fmtKm(analysis.minSep) + ", below the 1 km collision threshold (day " + day + ").";
     } else {
       explain = (proposed ? "Proposed plane: a pair would close to " : "A pair closes to ") +
-        fmtKm(analysis.minSep) + ", below the 10 km safety limit.";
+        fmtKm(analysis.minSep) + ", below the 10 km safety limit (day " + day + ").";
     }
 
     setStatusCard(kind, word, fmtKm(analysis.minSep), explain);
@@ -1172,7 +1261,8 @@ function updateAnalysisPanel() {
     ui.aPair.textContent = a ? a.label + " \u2194 " + b.label : "\u2014";
     ui.aEpochs.textContent = analysis.epochs + " \u00d7 300 s \u00b7 " +
       analysis.pairCount.toLocaleString("en-US") + " pairs";
-    ui.aEpochs.title = "Full 24 h propagated at 10 s (" + analysis.fineSamples +
+    ui.aEpochs.title = "Day " + day + " window " + fmtClock(analysis.start) + " to " +
+      fmtClock(analysis.end) + ": full 24 h propagated at 10 s (" + analysis.fineSamples +
       " samples) with secular J2; the 300 s clearance profile is sampled from the " +
       "same pass and close candidates are refined continuously.";
     ui.btnViewClose.disabled = !analysis.pair;
@@ -1187,6 +1277,17 @@ function updateAnalysisPanel() {
   }
 
   ui.feedback.innerHTML = feedback || "";
+
+  const shown = analysis || state.analysis;
+  if (shown) {
+    const shownDay = Math.floor(shown.start / DAY) + 1;
+    ui.profileLabel.textContent = "Day " + shownDay +
+      " \u00b7 24 h profile \u00b7 300 s samples \u00b7 log scale";
+    ui.profile.title = "Rolling 24-hour clearance profile for day " + shownDay +
+      " (" + fmtClock(shown.start) + " to " + fmtClock(shown.end) +
+      "), sampled every 300 s from a full 24 h propagation at 10 s with secular J2. " +
+      "Brief conjunctions are refined. Click to scrub time.";
+  }
   drawProfile();
 }
 
@@ -1347,7 +1448,12 @@ function bindEvents() {
     const padL = 4, padR = 30;
     const x = clamp(e.clientX - rect.left, padL, rect.width - padR);
     const frac = (x - padL) / Math.max(1, rect.width - padL - padR);
-    state.simTime = clamp(frac, 0, 1) * DAY;
+    const analysis = currentViewAnalysis();
+    const winStart = analysis && isFinite(analysis.start) ? analysis.start : 0;
+    const winEnd = analysis && isFinite(analysis.end) ? analysis.end : DAY;
+    // Stay inside the displayed window; the last pixel is just before the
+    // next day, so scrubbing never forces an unrequested window change.
+    state.simTime = winStart + clamp(frac, 0, 1) * Math.max(0, winEnd - winStart - 1);
     state.paused = true;
     state.focus = null;
     updatePauseUI();
@@ -1398,7 +1504,11 @@ function drawProfile() {
 
   const logMin = -0.3;                 // 0.5 km
   const logMax = Math.log10(30000);    // 30,000 km
-  const xFor = t => padL + plotW * clamp(t / DAY, 0, 1);
+  const analysis = currentViewAnalysis();
+  const winStart = analysis && isFinite(analysis.start) ? analysis.start : 0;
+  const winEnd = analysis && isFinite(analysis.end) ? analysis.end : DAY;
+  const winSpan = Math.max(1, winEnd - winStart);
+  const xFor = t => padL + plotW * clamp((t - winStart) / winSpan, 0, 1);
   const yFor = d => {
     const l = Math.log10(Math.max(0.5, isFinite(d) ? d : 30000));
     return padT + plotH * (1 - clamp((l - logMin) / (logMax - logMin), 0, 1));
@@ -1430,7 +1540,6 @@ function drawProfile() {
     ctx.fillText(label, padL + plotW + 4, y);
   }
 
-  const analysis = currentViewAnalysis();
   if (!analysis || !analysis.profile || !isFinite(analysis.minSep)) {
     ctx.fillStyle = "#4f5f7c";
     ctx.textAlign = "center";
@@ -1444,12 +1553,12 @@ function drawProfile() {
 
   /* filled area under the curve */
   ctx.beginPath();
-  ctx.moveTo(xFor(0), h - padB);
+  ctx.moveTo(xFor(winStart), h - padB);
   for (let k = 0; k < profile.length; k++) {
-    const t = (k / (profile.length - 1)) * DAY;
+    const t = winStart + (k / (profile.length - 1)) * winSpan;
     ctx.lineTo(xFor(t), yFor(profile[k]));
   }
-  ctx.lineTo(xFor(DAY), h - padB);
+  ctx.lineTo(xFor(winEnd), h - padB);
   ctx.closePath();
   ctx.globalAlpha = 0.11;
   ctx.fillStyle = color;
@@ -1459,7 +1568,7 @@ function drawProfile() {
   /* trace */
   ctx.beginPath();
   for (let k = 0; k < profile.length; k++) {
-    const t = (k / (profile.length - 1)) * DAY;
+    const t = winStart + (k / (profile.length - 1)) * winSpan;
     const x = xFor(t);
     const y = yFor(profile[k]);
     if (k === 0) ctx.moveTo(x, y);
@@ -1481,8 +1590,8 @@ function drawProfile() {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  /* current simulation cursor (the profile covers the first 24 h) */
-  const px = xFor(mod(state.simTime, DAY));
+  /* current simulation cursor (the profile covers the analysis window) */
+  const px = xFor(state.simTime);
   ctx.save();
   ctx.setLineDash([2, 3]);
   ctx.strokeStyle = "rgba(255, 255, 255, 0.40)";
@@ -2067,6 +2176,18 @@ function loop(now) {
     // rather than a 24 h loop: wrapping back to t = 0 would visibly snap every
     // plane. The clock still displays time-of-day (plus a day count).
     state.simTime += dt * state.speed;
+  }
+
+  // Keep the committed clearance and profile in the 24 h window that contains
+  // the current simulation time. This is what makes the screen "rolling":
+  // when the clock crosses midnight, the next day is propagated fresh.
+  if (refreshRollingAnalysis()) {
+    updateStats();
+    updateAnalysisPanel();
+    addLog("note", "WINDOW",
+      "Rolling 24 h screen advanced to day " + (state.analysis.start / DAY + 1) +
+      " \u00b7 closest " + fmtKm(state.analysis.minSep) +
+      " (" + state.analysis.status + ")");
   }
 
   renderScene();
