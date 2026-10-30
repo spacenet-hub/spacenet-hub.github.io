@@ -1,4 +1,4 @@
-/* Interactive bibliography (bibliography.md)
+/* Interactive bibliography (bibliography.md).
    Colours follow the Slate theme: #373737 text, #f2f2f2 page, #0F79D0 links. */
 
 .bib-app {
@@ -304,48 +304,17 @@
   border-radius: 999px;
 }
 
-.bib-tag-abs { color: #0b5ea3; background: #e7f0fa; }
-
-.bib-snippet {
-  display: block;
-  margin-top: 6px;
-  font-size: 0.95em;
-  color: var(--bib-muted);
-}
-
-.bib-entry[open] .bib-snippet { display: none; }
-
 .bib-body {
   padding: 0 18px 14px 38px;
   font-size: 0.78em;
   line-height: 1.6;
 }
 
-.bib-label {
-  margin: 4px 0 2px;
-  font-size: 0.78em;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--bib-muted);
-}
-
-.bib-abstract,
-.bib-note {
-  margin: 0 0 10px;
-  color: var(--bib-ink);
-  text-align: left;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-}
-
-.bib-empty { margin: 0 0 10px; color: var(--bib-muted); font-style: italic; }
-
 .bib-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 12px 0 0;
+  margin: 2px 0 0;
 }
 
 .bib-btn {
