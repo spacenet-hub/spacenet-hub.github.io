@@ -1,4 +1,5 @@
 /* Interactive bibliography: search, sort, expand/collapse, deep links.
+  // A short excerpt around the first abstract match, shown under a closed entry.
    Works on the HTML produced by bibliography.md
    Without JavaScript the page still works: entries are plain <details>. */
 (function () {
@@ -79,7 +80,12 @@
 
   var entries = Array.prototype.slice.call(app.querySelectorAll(".bib-entry")).map(function (el, i) {
     var d = el.dataset;
+    var abstractText = textOf(el, ".bib-abstract").trim();
     var refText = textOf(el, ".bib-ref");
+    var snippet = document.createElement("span");
+    snippet.className = "bib-snippet";
+    snippet.hidden = true;
+    el.querySelector("summary").insertBefore(snippet, el.querySelector(".bib-tags"));
     return {
       el: el,
       li: el.parentNode,
@@ -88,10 +94,13 @@
       year: parseInt(d.year, 10) || 0,
       sortName: fold(d.sortName || "").replace(/^[^a-z0-9]+/, ""),
       order: i,
+      abstractRaw: abstractText,
+      snippet: snippet,
       fields: {
         title: fold(d.title),
         author: fold(d.authors),
-        all: fold([refText, d.authors, d.title, d.key].join(" \u0000 "))
+        abstract: fold(abstractText),
+        all: fold([refText, d.authors, d.title, abstractText, d.key].join(" \u0000 "))
       }
     };
   });
@@ -111,6 +120,23 @@
     return out;
   }
 
+
+  function makeSnippet(e, terms) {
+    var folded = e.fields.abstract;
+    var best = -1;
+    var len = 0;
+    terms.forEach(function (t) {
+      var i = folded.indexOf(t);
+      if (i !== -1 && (best === -1 || i < best)) { best = i; len = t.length; }
+    });
+    if (best === -1) return "";
+    var raw = e.abstractRaw;
+    var start = Math.max(0, best - 70);
+    var end = Math.min(raw.length, best + len + 110);
+    if (start > 0) { var sp = raw.indexOf(" ", start); if (sp !== -1 && sp < best) start = sp + 1; }
+    if (end < raw.length) { var ep = raw.lastIndexOf(" ", end); if (ep > best + len) end = ep; }
+    return (start > 0 ? "\u2026" : "") + raw.slice(start, end) + (end < raw.length ? "\u2026" : "");
+  }
 
   function addRanges(root, terms, ranges) {
     if (!root) return;
@@ -136,8 +162,15 @@
     CSS.highlights.delete("bib-match");
     if (!terms.length) return;
     var ranges = [];
+    var inRef = scope !== "abstract";
+    var inAbstract = scope === "all" || scope === "abstract";
     entries.forEach(function (e) {
-      if (!e.li.hidden) addRanges(e.el.querySelector(".bib-ref"), terms, ranges);
+      if (e.li.hidden) return;
+      if (inRef) addRanges(e.el.querySelector(".bib-ref"), terms, ranges);
+      if (inAbstract) {
+        addRanges(e.el.querySelector(".bib-abstract"), terms, ranges);
+        if (!e.snippet.hidden) addRanges(e.snippet, terms, ranges);
+      }
     });
     var h = new Highlight();
     ranges.forEach(function (r) { h.add(r); });
@@ -154,6 +187,10 @@
       var ok = terms.every(function (t) { return hay.indexOf(t) !== -1; });
       e.li.hidden = !ok;
       if (ok) shown++;
+
+      var snip = ok && terms.length && (scope === "all" || scope === "abstract") ? makeSnippet(e, terms) : "";
+      e.snippet.textContent = snip;
+      e.snippet.hidden = !snip;
     });
 
     sections.forEach(function (s) {
@@ -347,7 +384,7 @@
     var params = new URL(window.location.href).searchParams;
     if (params.get("q")) input.value = params.get("q");
     var initialScope = params.get("in");
-    if (initialScope && ["all", "author", "title"].indexOf(initialScope) !== -1) setScope(initialScope);
+    if (initialScope && ["all", "author", "title", "abstract"].indexOf(initialScope) !== -1) setScope(initialScope);
   } catch (err) { /* ignore */ }
 
   apply();
