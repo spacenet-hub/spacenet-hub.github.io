@@ -114,9 +114,9 @@ const state = {
 
   analysis: null,        // analysis of the committed constellation
   lastFeedback: "",      // HTML explanation for the committed constellation
-  preview: null,         // { params, plane, analysis, feedback, overflow }
+  preview: null,         // { params, plane, analysis, feedback, overflow, stale }
   previewArmed: false,   // becomes true once the player touches a control
-  previewTimer: null,
+  previewTimer: null,    // pending post-release analysis
 
   simTime: 0,            // seconds, continuous (clock displays time-of-day)
   speed: 300,
@@ -506,7 +506,7 @@ function refreshRollingAnalysis() {
   if (!ensureCurrentAnalysis()) return false;
 
   const pv = state.preview;
-  if (pv && !pv.overflow && pv.plane) {
+  if (pv && !pv.overflow && pv.plane && !pv.stale) {
     const analysis = analyzeConstellation(state.sats.concat(pv.plane.sats),
       { start: state.analysis.start });
     pv.analysis = analysis;
@@ -974,16 +974,50 @@ function onControlInput() {
   syncControlUI();
   state.previewArmed = true;
   state.focus = null;
+
+  // Cancel any pending commit analysis: the value is still moving.
+  if (state.previewTimer) {
+    clearTimeout(state.previewTimer);
+    state.previewTimer = null;
+  }
+
+  // The 24 h conjunction screen is expensive, so it is deferred until the
+  // slider is released (see onControlCommit). While dragging, only the cheap
+  // ghost orbit is rebuilt for the main view.
+  updatePreviewGeometry();
   updateDeployButton();
   updatePreviewTag();
-  if (state.previewTimer) clearTimeout(state.previewTimer);
-  ui.previewTag.textContent = "CHECKING\u2026";
-  state.previewTimer = setTimeout(runPreview, 200);
 }
 
-function schedulePreviewSoon() {
+/**
+ * Rebuild the proposed plane for the current slider values without running
+ * the conjunction screen. The previous analysis (if any) is kept so the
+ * analysis panel and clearance profile stay frozen while the thumb moves.
+ */
+function updatePreviewGeometry() {
+  const params = readParams();
+  const overflow = state.sats.length + params.count > MAX_SATS;
+  const previous = state.preview;
+
+  state.preview = {
+    params,
+    plane: overflow ? null : createPlane(params, state.nextPlaneId),
+    analysis: previous ? previous.analysis : null,
+    feedback: previous ? previous.feedback : null,
+    overflow,
+    stale: true
+  };
+}
+
+/**
+ * The slider value has been committed (mouse/touch release), so now run the
+ * full 24 h screen. A tiny timeout coalesces duplicate change events without
+ * making the UI feel unresponsive.
+ */
+function onControlCommit() {
+  if (!state.previewArmed) return;
   if (state.previewTimer) clearTimeout(state.previewTimer);
-  state.previewTimer = setTimeout(runPreview, 200);
+  state.previewTimer = setTimeout(runPreview, 30);
 }
 
 /* =========================================================================
@@ -1009,7 +1043,8 @@ function runPreview() {
       plane: null,
       analysis: null,
       feedback: buildCapacityFeedback(params, total),
-      overflow: true
+      overflow: true,
+      stale: false
     };
     updatePreviewTag();
     updateDeployButton();
@@ -1023,7 +1058,7 @@ function runPreview() {
     { start: state.analysis.start });
   const feedback = buildFeedback(plane, analysis, state.analysis);
 
-  state.preview = { params, plane, analysis, feedback, overflow: false };
+  state.preview = { params, plane, analysis, feedback, overflow: false, stale: false };
   updatePreviewTag();
   updateDeployButton();
   updateAnalysisPanel();
@@ -1035,9 +1070,13 @@ function updatePreviewTag() {
     ui.previewTag.textContent = "CAPACITY";
     return;
   }
-  ui.previewTag.textContent = state.previewArmed
-    ? "PREVIEW +" + params.count
-    : "NEW PLANE";
+  if (!state.previewArmed) {
+    ui.previewTag.textContent = "NEW PLANE";
+    return;
+  }
+  ui.previewTag.textContent = state.preview && state.preview.stale
+    ? "RELEASE TO ANALYSE"
+    : "PREVIEW +" + params.count;
 }
 
 function deploy() {
@@ -1055,7 +1094,8 @@ function deploy() {
       plane: null,
       analysis: null,
       feedback: buildCapacityFeedback(params, totalBefore),
-      overflow: true
+      overflow: true,
+      stale: false
     };
     state.previewArmed = true;
     updatePreviewTag();
@@ -1099,7 +1139,7 @@ function deploy() {
     setTimeout(() => ui.deploy.classList.remove("flash"), 600);
   } else {
     /* ---- reject the plane, but keep it visible as a ghost ---- */
-    state.preview = { params, plane, analysis, feedback, overflow: false };
+    state.preview = { params, plane, analysis, feedback, overflow: false, stale: false };
     state.previewArmed = true;
     state.focus = null;
 
@@ -1414,7 +1454,11 @@ function viewClosestPass() {
    ========================================================================= */
 function bindEvents() {
   [ui.inc, ui.raan, ui.count, ui.phase].forEach(input => {
+    // `input` fires continuously while the thumb moves; `change` fires once
+    // the value is committed (slider release), which is when the expensive
+    // 24 h conjunction screen runs.
     input.addEventListener("input", onControlInput);
+    input.addEventListener("change", onControlCommit);
   });
 
   ui.deploy.addEventListener("click", deploy);
@@ -1774,6 +1818,230 @@ function statusColor(status) {
     (status === "DANGEROUS" ? "#ffc04d" : "#45e6a0");
 }
 
+/* =========================================================================
+   LAND GEOMETRY
+   -------------------------------------------------------------------------
+   world.js is loaded before this file and exposes `landGeoJSON`, a Natural
+   Earth country collection. Every polygon ring is converted once into
+   Earth-fixed unit vectors, so the draw loop only has to spin the vectors by
+   the Earth's current rotation and project them.
+
+   Visible-hemisphere clipping is done in 3D: the viewer direction is rotated
+   into the Earth-fixed frame and every ring is clipped against the plane
+   through Earth's centre perpendicular to the view. Filling the result gives
+   correct coastlines right up to the limb, with no back-side bleed-through.
+   ========================================================================= */
+const LAND_RINGS = (() => {
+  const rings = [];
+  if (typeof landGeoJSON === "undefined" || !landGeoJSON || !landGeoJSON.features) {
+    return rings;
+  }
+
+  function addRing(coords) {
+    if (!coords || coords.length < 3) return;
+    const arr = new Float64Array(coords.length * 3);
+    for (let i = 0; i < coords.length; i++) {
+      const lon = coords[i][0] * D2R;
+      const lat = coords[i][1] * D2R;
+      const cl = Math.cos(lat);
+      arr[i * 3] = cl * Math.cos(lon);
+      arr[i * 3 + 1] = cl * Math.sin(lon);
+      arr[i * 3 + 2] = Math.sin(lat);
+    }
+    rings.push(arr);
+  }
+
+  for (const feature of landGeoJSON.features) {
+    const g = feature && feature.geometry;
+    if (!g || !g.coordinates) continue;
+    if (g.type === "Polygon") {
+      for (const ring of g.coordinates) addRing(ring);
+    } else if (g.type === "MultiPolygon") {
+      for (const poly of g.coordinates) {
+        for (const ring of poly) addRing(ring);
+      }
+    }
+  }
+  return rings;
+})();
+
+const LAND_MAX_RING = LAND_RINGS.reduce((m, r) => Math.max(m, r.length / 3), 0);
+const LAND_CLIP = new Float64Array((LAND_MAX_RING + 2) * 3);
+const LAND_DEPTH = new Float64Array(LAND_MAX_RING);
+const LAND_FLAG = new Uint8Array(LAND_MAX_RING + 2);  // 1 = clip-plane intersection
+
+/**
+ * Draw the land on the visible hemisphere of the globe.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} cx screen x of Earth's centre
+ * @param {number} cy screen y of Earth's centre
+ * @param {number} baseR screen radius of Earth
+ * @param {Object} cam camera basis from cameraBasis()
+ * @param {number} theta Earth rotation angle at the current simulation time
+ */
+function drawLand(ctx, cx, cy, baseR, cam, theta) {
+  if (!LAND_RINGS.length) return;
+
+  const cosT = Math.cos(theta);
+  const sinT = Math.sin(theta);
+  // Rings are unit vectors on the Earth-fixed sphere, so the screen scale is
+  // simply the globe radius.
+  const scale = baseR;
+
+  // Viewer direction and screen axes expressed in the Earth-fixed frame.
+  const efx = cosT * cam.ex + sinT * cam.ey;
+  const efy = -sinT * cam.ex + cosT * cam.ey;
+  const efz = cam.ez;
+
+  // Earth-fixed vector -> screen offsets (rotation + camera projection).
+  const c1 = cosT * cam.rx + sinT * cam.ry;
+  const c2 = -sinT * cam.rx + cosT * cam.ry;
+  const c3 = cam.rz;
+  const u1 = cosT * cam.ux + sinT * cam.uy;
+  const u2 = -sinT * cam.ux + cosT * cam.uy;
+  const u3 = cam.uz;
+
+  const fill = new Path2D();
+  const coast = new Path2D();
+  const EPS_FRONT = 0.004;
+
+  for (const ring of LAND_RINGS) {
+    const n = ring.length / 3;
+    if (!n) continue;
+
+    // Depth of every vertex: positive means the visible hemisphere.
+    for (let i = 0; i < n; i++) {
+      const ix = i * 3;
+      LAND_DEPTH[i] = ring[ix] * efx + ring[ix + 1] * efy + ring[ix + 2] * efz;
+    }
+
+    /* ---- Sutherland-Hodgman clip against the visible half-space ---- */
+    let m = 0;
+    let pi = n - 1;
+    let px = ring[pi * 3], py = ring[pi * 3 + 1], pz = ring[pi * 3 + 2];
+    let pd = LAND_DEPTH[pi];
+    let pin = pd >= 0;
+
+    for (let i = 0; i < n; i++) {
+      const ix = i * 3;
+      const x = ring[ix], y = ring[ix + 1], z = ring[ix + 2];
+      const d = LAND_DEPTH[i];
+      const cin = d >= 0;
+
+      if (cin !== pin) {
+        const t = pd / (pd - d);
+        LAND_CLIP[m * 3] = px + (x - px) * t;
+        LAND_CLIP[m * 3 + 1] = py + (y - py) * t;
+        LAND_CLIP[m * 3 + 2] = pz + (z - pz) * t;
+        LAND_FLAG[m] = 1;
+        m++;
+      }
+      if (cin) {
+        LAND_CLIP[m * 3] = x;
+        LAND_CLIP[m * 3 + 1] = y;
+        LAND_CLIP[m * 3 + 2] = z;
+        LAND_FLAG[m] = 0;
+        m++;
+      }
+
+      px = x; py = y; pz = z; pd = d; pin = cin;
+    }
+
+    /* Project the clipped ring. Pairs of consecutive clip-plane points form
+       the continuation of the landmass behind the limb; that boundary is the
+       great circle at depth zero, which projects exactly onto the globe rim.
+       Draw it as a rim arc instead of a straight chord across the disc. */
+    if (m >= 3) {
+      let firstX = 0, firstY = 0, firstAngle = 0, prevAngle = 0;
+      let prevClip = false;
+
+      for (let i = 0; i < m; i++) {
+        const ix = i * 3;
+        const x = LAND_CLIP[ix], y = LAND_CLIP[ix + 1], z = LAND_CLIP[ix + 2];
+        const sx = cx + (x * c1 + y * c2 + z * c3) * scale;
+        const sy = cy - (x * u1 + y * u2 + z * u3) * scale;
+        const angle = Math.atan2(sy - cy, sx - cx);
+        const isClip = LAND_FLAG[i] === 1;
+
+        if (i === 0) {
+          fill.moveTo(sx, sy);
+          firstX = sx; firstY = sy; firstAngle = angle;
+        } else if (prevClip && isClip) {
+          const da = Math.atan2(Math.sin(angle - prevAngle), Math.cos(angle - prevAngle));
+          if (Math.abs(da) > 1e-7) fill.arc(cx, cy, baseR, prevAngle, prevAngle + da, da < 0);
+          else fill.lineTo(sx, sy);
+        } else {
+          fill.lineTo(sx, sy);
+        }
+
+        prevAngle = angle;
+        prevClip = isClip;
+      }
+
+      if (prevClip && LAND_FLAG[0] === 1) {
+        const da = Math.atan2(Math.sin(firstAngle - prevAngle), Math.cos(firstAngle - prevAngle));
+        if (Math.abs(da) > 1e-7) fill.arc(cx, cy, baseR, prevAngle, prevAngle + da, da < 0);
+        else fill.lineTo(firstX, firstY);
+      }
+      fill.closePath();
+    }
+
+    /* ---- coastline: original edges on the front hemisphere only ----
+       The clipped ring boundary includes a chord across the limb. Stroking
+       that would draw a line across the globe, so shoreline strokes use the
+       unclipped ring and stop at the limb instead. */
+    let pen = false;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      if (LAND_DEPTH[i] <= EPS_FRONT || LAND_DEPTH[j] <= EPS_FRONT) {
+        pen = false;
+        continue;
+      }
+      const ix = i * 3, jx = j * 3;
+      const sx0 = cx + (ring[ix] * c1 + ring[ix + 1] * c2 + ring[ix + 2] * c3) * scale;
+      const sy0 = cy - (ring[ix] * u1 + ring[ix + 1] * u2 + ring[ix + 2] * u3) * scale;
+      const sx1 = cx + (ring[jx] * c1 + ring[jx + 1] * c2 + ring[jx + 2] * c3) * scale;
+      const sy1 = cy - (ring[jx] * u1 + ring[jx + 1] * u2 + ring[jx + 2] * u3) * scale;
+      if (!pen) { coast.moveTo(sx0, sy0); pen = true; }
+      coast.lineTo(sx1, sy1);
+    }
+  }
+
+  ctx.save();
+
+  // Numerical insurance: the clipped geometry should lie inside the
+  // silhouette anyway, but a distant chord can never leak past the rim.
+  ctx.beginPath();
+  ctx.arc(cx, cy, baseR * 1.002, 0, TAU);
+  ctx.clip();
+
+  // Screen-space shading that matches the Earth sphere's light direction.
+  const landFill = ctx.createRadialGradient(
+    cx - baseR * 0.34, cy - baseR * 0.40, baseR * 0.06,
+    cx, cy, baseR * 1.06
+  );
+  landFill.addColorStop(0, "#1d5f6b");
+  landFill.addColorStop(0.38, "#154a58");
+  landFill.addColorStop(0.72, "#0b2f3d");
+  landFill.addColorStop(0.92, "#071f2b");
+  landFill.addColorStop(1, "#05161f");
+
+  ctx.fillStyle = landFill;
+  ctx.fill(fill, "nonzero");
+
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(104, 226, 240, 0.12)";
+  ctx.lineWidth = 2.6;
+  ctx.stroke(coast);
+  ctx.strokeStyle = "rgba(146, 231, 247, 0.52)";
+  ctx.lineWidth = 0.75;
+  ctx.stroke(coast);
+
+  ctx.restore();
+}
+
 function renderScene() {
   fitScene();
   const ctx = ui.scene.getContext("2d");
@@ -1854,12 +2122,12 @@ function renderScene() {
     ringDraws.push(buildRing(plane, false));
   }
 
-  let previewColor = null;
-  let previewStatus = null;
+  let previewColor = "rgba(196, 216, 240, 0.85)";
   if (state.preview && !state.preview.overflow) {
-    if (state.preview.analysis) {
-      previewStatus = state.preview.analysis.status;
-      previewColor = statusColor(previewStatus);
+    // While a slider is moving there is no fresh analysis; keep the ghost
+    // ring neutral instead of borrowing a stale safety colour.
+    if (state.preview.analysis && !state.preview.stale) {
+      previewColor = statusColor(state.preview.analysis.status);
     }
     if (state.preview.plane) {
       ringDraws.push(buildRing(state.preview.plane, true));
@@ -1931,6 +2199,9 @@ function renderScene() {
   ctx.strokeStyle = "rgba(110, 195, 255, 0.34)";
   strokeGeoLine(0, false);
   ctx.restore();
+
+  /* ---------- land geometry (on top of the graticule) ---------- */
+  drawLand(ctx, cx, cy, baseR, cam, WE * state.simTime);
 
   /* ---------- visible orbital arcs ---------- */
   for (const r of ringDraws) {
