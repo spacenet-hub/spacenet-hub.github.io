@@ -127,6 +127,7 @@ const state = {
   hoverSat: null,
   screenSats: [],        // populated by the renderer for hit-testing
   focus: null,           // { sats: [a, b], t: seconds } closest-pass highlight
+  heatLayout: null,      // { n, ox, oy, cell } cached by drawHeatmap for hover
 
   resetArmed: false,
   resetTimer: null,
@@ -331,6 +332,8 @@ function analyzeConstellation(sats, opts = {}) {
       minTime: start,
       status: "SAFE",
       profile: new Float64Array(coarseSteps + 1).fill(Infinity),
+      pairMatrix: new Float64Array(n * n),
+      pairTimeMatrix: new Float64Array(n * n),
       epochs: coarseSteps + 1,
       fineSamples: fineSteps + 1,
       pairCount: 0,
@@ -446,6 +449,10 @@ function analyzeConstellation(sats, opts = {}) {
   for (const p of candidates) {
     const r = refineClosest(sats[pairI[p]], sats[pairJ[p]], pairTime[p],
       FINE_STEP * 1.5, start, end);
+    if (r.d2 < pairMinSq[p]) {
+      pairMinSq[p] = r.d2;
+      pairTime[p] = r.t;
+    }
     if (r.d2 < bestSq) {
       bestSq = r.d2;
       bestT = r.t;
@@ -459,6 +466,23 @@ function analyzeConstellation(sats, opts = {}) {
 
   const minSep = Math.sqrt(Math.max(0, bestSq));
 
+  /* ---- symmetric pair-distance matrix for the heatmap ----
+     Distances are in km, indexed row-major as i * n + j. The diagonal is
+     left at zero because a satellite is not paired with itself. The matching
+     time matrix stores when that 24 h minimum occurs, so a heatmap click can
+     jump straight to the pair's closest pass. */
+  const pairMatrix = new Float64Array(n * n);
+  const pairTimeMatrix = new Float64Array(n * n);
+  for (let p = 0; p < pairCount; p++) {
+    const d = Math.sqrt(Math.max(0, pairMinSq[p]));
+    const i = pairI[p];
+    const j = pairJ[p];
+    pairMatrix[i * n + j] = d;
+    pairMatrix[j * n + i] = d;
+    pairTimeMatrix[i * n + j] = pairTime[p];
+    pairTimeMatrix[j * n + i] = pairTime[p];
+  }
+
   return {
     sats,
     pair: [pairI[bestPair], pairJ[bestPair]],
@@ -466,6 +490,8 @@ function analyzeConstellation(sats, opts = {}) {
     minTime: bestT,
     status: statusFor(minSep),
     profile,
+    pairMatrix,
+    pairTimeMatrix,
     epochs: coarseSteps + 1,
     fineSamples: fineSteps + 1,
     pairCount,
@@ -927,6 +953,11 @@ const ui = {
   profile: $("profile"),
   profileLabel: $("profileLabel"),
   profileCursor: $("profileCursor"),
+  deck: $("deck"),
+  heatmap: $("heatmap"),
+  heatTip: $("heatTip"),
+  heatLabel: $("heatLabel"),
+  heatTag: $("heatTag"),
   feedback: $("feedback"),
   btnViewClose: $("btnViewClose"),
 
@@ -1368,6 +1399,7 @@ function updateAnalysisPanel() {
       "Brief conjunctions are refined. Click to scrub time.";
   }
   drawProfile();
+  drawHeatmap();
 }
 
 function updatePauseUI() {
@@ -1420,17 +1452,17 @@ function setSpeed(speed) {
   });
 }
 
-function viewClosestPass() {
-  const analysis = currentViewAnalysis();
-  if (!analysis || !analysis.pair) return;
-
-  const { a, b } = closestPair(analysis);
-
+/**
+ * Point the camera at a pair's closest pass, pause the clock and leave the
+ * pair highlighted. Shared by the "View closest pass" button and heatmap cell
+ * clicks so both produce exactly the same focused view.
+ */
+function focusPairAt(a, b, t) {
   // Rotate the globe so the conjunction midpoint faces the camera. Without
   // this, a closest pass on the far side of Earth would be hidden at the very
   // moment the player asked to inspect it.
-  satPos(a, analysis.minTime, _pa);
-  satPos(b, analysis.minTime, _pb);
+  satPos(a, t, _pa);
+  satPos(b, t, _pb);
   const mx = (_pa[0] + _pb[0]) / 2;
   const my = (_pa[1] + _pb[1]) / 2;
   const mz = (_pa[2] + _pb[2]) / 2;
@@ -1440,11 +1472,21 @@ function viewClosestPass() {
     state.cam.pitch = clamp(Math.asin(mz / len), -1.42, 1.42);
   }
 
-  state.simTime = analysis.minTime;
+  state.simTime = t;
   state.paused = true;
-  state.focus = { sats: [a, b], t: analysis.minTime };
+  state.focus = { sats: [a, b], t };
   updatePauseUI();
   updateHUD(true);
+}
+
+function viewClosestPass() {
+  const analysis = currentViewAnalysis();
+  if (!analysis || !analysis.pair) return;
+
+  const { a, b } = closestPair(analysis);
+  if (!a || !b) return;
+
+  focusPairAt(a, b, analysis.minTime);
   toast("Closest pass loaded: " + fmtClock(analysis.minTime) +
     " \u00b7 " + fmtKm(analysis.minSep), "info");
 }
@@ -1555,6 +1597,13 @@ function bindEvents() {
     scrubbing = false;
     if (profile.hasPointerCapture(e.pointerId)) profile.releasePointerCapture(e.pointerId);
   });
+
+  // Heatmap hover is computed only while the pointer is over the canvas.
+  if (ui.heatmap) {
+    ui.heatmap.addEventListener("pointermove", updateHeatTip);
+    ui.heatmap.addEventListener("pointerleave", hideHeatTip);
+    ui.heatmap.addEventListener("click", onHeatClick);
+  }
 }
 
 /* =========================================================================
@@ -1687,6 +1736,274 @@ function drawProfile() {
 }
 
 /* =========================================================================
+   PAIRWISE HEATMAP
+   -------------------------------------------------------------------------
+   The matrix itself is produced once per conjunction analysis (see
+   analyzeConstellation). This renderer runs only when the displayed analysis
+   changes or the canvas is resized, never from the animation loop, so it adds
+   nothing to the frame cost. Cells are plain rectangles rather than one path
+   per cell, keeping even a 120 x 120 matrix to a single cheap pass.
+   ========================================================================= */
+const HEAT_MIN_KM = 0.1;
+const HEAT_MAX_KM = 250;
+const HEAT_LOG_MIN = Math.log10(HEAT_MIN_KM);
+const HEAT_LOG_MAX = Math.log10(HEAT_MAX_KM);
+
+// Stops interpolated in log-distance space: red below the safety limit,
+// amber at 10 km, green above it, fading into the panel near 250 km.
+const HEAT_STOPS = [
+  [0.1, 255, 38, 66],
+  [1.0, 255, 48, 72],
+  [5.0, 255, 104, 58],
+  [10.0, 255, 176, 56],
+  [16.0, 88, 226, 138],
+  [80.0, 60, 216, 158],
+  [170.0, 32, 124, 122],
+  [250.0, 20, 54, 76]
+];
+
+function heatColor(d) {
+  const l = Math.log10(clamp(d, HEAT_MIN_KM, HEAT_MAX_KM));
+  let s = HEAT_STOPS[0];
+  let e = HEAT_STOPS[HEAT_STOPS.length - 1];
+  for (let i = 1; i < HEAT_STOPS.length; i++) {
+    if (l <= Math.log10(HEAT_STOPS[i][0])) {
+      s = HEAT_STOPS[i - 1];
+      e = HEAT_STOPS[i];
+      break;
+    }
+  }
+  const ls = Math.log10(s[0]);
+  const le = Math.log10(e[0]);
+  const t = le > ls ? clamp((l - ls) / (le - ls), 0, 1) : 0;
+  const r = Math.round(s[1] + (e[1] - s[1]) * t);
+  const g = Math.round(s[2] + (e[2] - s[2]) * t);
+  const b = Math.round(s[3] + (e[3] - s[3]) * t);
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+
+const HEAT_LUT = (() => {
+  const lut = new Array(128);
+  for (let i = 0; i < lut.length; i++) {
+    const t = i / (lut.length - 1);
+    lut[i] = heatColor(Math.pow(10, HEAT_LOG_MIN + t * (HEAT_LOG_MAX - HEAT_LOG_MIN)));
+  }
+  return lut;
+})();
+
+function heatLutIndex(d) {
+  if (d <= HEAT_MIN_KM) return 0;
+  const t = (Math.log10(d) - HEAT_LOG_MIN) / (HEAT_LOG_MAX - HEAT_LOG_MIN);
+  return clamp(Math.round(t * (HEAT_LUT.length - 1)), 0, HEAT_LUT.length - 1);
+}
+
+function drawHeatmap() {
+  const canvas = ui.heatmap;
+  if (!canvas) return;
+
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width < 20 || rect.height < 20) return;
+
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.round(rect.width);
+  const h = Math.round(rect.height);
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#070d18";
+  ctx.fillRect(0, 0, w, h);
+
+  const analysis = currentViewAnalysis();
+  const n = analysis && analysis.pairMatrix ? analysis.sats.length : 0;
+  if (!analysis || n < 2 || analysis.pairMatrix.length < n * n) {
+    state.heatLayout = null;
+    ctx.fillStyle = "#4f5f7c";
+    ctx.font = "9px " + (getComputedStyle(document.body).fontFamily || "monospace");
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("awaiting analysis", w / 2, h / 2);
+    if (ui.heatTag) ui.heatTag.textContent = "\u2014";
+    if (ui.heatLabel) ui.heatLabel.textContent = "24 h pair minima \u00b7 log scale";
+    return;
+  }
+
+  const pad = 6;
+  const plotW = w - pad * 2;
+  const plotH = h - pad * 2;
+  const cell = Math.min(plotW / n, plotH / n, 30);
+  const gridW = cell * n;
+  const gridH = cell * n;
+  const ox = pad + (plotW - gridW) / 2;
+  const oy = pad + (plotH - gridH) / 2;
+
+  const m = analysis.pairMatrix;
+  const gap = cell > 3 ? 0.6 : 0;
+  const cw = Math.max(1, cell - gap);
+
+  let closePairs = 0;
+  for (let i = 0; i < n; i++) {
+    const row = i * n;
+    for (let j = i + 1; j < n; j++) {
+      const d = m[row + j];
+      const x1 = ox + j * cell;
+      const y1 = oy + i * cell;
+      const x2 = ox + i * cell;
+      const y2 = oy + j * cell;
+      if (d <= HEAT_MAX_KM) {
+        closePairs++;
+        ctx.fillStyle = HEAT_LUT[heatLutIndex(d)];
+      } else {
+        // Beyond the colour range the pair is comfortably clear; use the far
+        // end of the scale so the matrix still reads as a complete surface.
+        ctx.fillStyle = HEAT_LUT[HEAT_LUT.length - 1];
+      }
+      ctx.fillRect(x1, y1, cw, cw);
+      ctx.fillRect(x2, y2, cw, cw);
+    }
+  }
+
+  /* diagonal is not a pair, but keeps the matrix readable */
+  ctx.fillStyle = "rgba(70, 216, 255, 0.10)";
+  for (let i = 0; i < n; i++) {
+    ctx.fillRect(ox + i * cell, oy + i * cell, cw, cw);
+  }
+
+  /* plane boundaries reveal the block structure of the constellation */
+  ctx.strokeStyle = "rgba(70, 216, 255, 0.20)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 1; i < n; i++) {
+    if (analysis.sats[i].plane !== analysis.sats[i - 1].plane) {
+      const x = ox + i * cell;
+      const y = oy + i * cell;
+      ctx.moveTo(x, oy);
+      ctx.lineTo(x, oy + gridH);
+      ctx.moveTo(ox, y);
+      ctx.lineTo(ox + gridW, y);
+    }
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(80, 110, 150, 0.50)";
+  ctx.strokeRect(ox - 0.5, oy - 0.5, gridW + 1, gridH + 1);
+
+  if (closePairs === 0) {
+    const label = "no pair closer than " + HEAT_MAX_KM + " km";
+    ctx.font = "9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const tw = ctx.measureText(label).width + 16;
+    const tx = ox + gridW / 2;
+    const ty = oy + gridH / 2;
+    ctx.fillStyle = "rgba(7, 13, 24, 0.88)";
+    ctx.fillRect(tx - tw / 2, ty - 9, tw, 18);
+    ctx.fillStyle = "#8fa3c2";
+    ctx.fillText(label, tx, ty);
+  }
+
+  state.heatLayout = { n, ox, oy, cell };
+
+  if (ui.heatTag) ui.heatTag.textContent = n + " \u00d7 " + n;
+  if (ui.heatLabel) {
+    ui.heatLabel.textContent = closePairs + "/" + analysis.pairCount +
+      " pairs < " + HEAT_MAX_KM + " km";
+  }
+}
+
+function hideHeatTip() {
+  if (!ui.heatTip) return;
+  ui.heatTip.classList.remove("show");
+  if (ui.heatmap) ui.heatmap.style.cursor = "";
+}
+
+/**
+ * Resolve a viewport position to a heatmap pair cell. Returns null when the
+ * pointer is outside the matrix, so hover and click share identical hit tests.
+ */
+function heatPairAt(clientX, clientY) {
+  const layout = state.heatLayout;
+  if (!layout || !ui.heatmap) return null;
+
+  const rect = ui.heatmap.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  const j = Math.floor((x - layout.ox) / layout.cell);
+  const i = Math.floor((y - layout.oy) / layout.cell);
+  const analysis = currentViewAnalysis();
+
+  if (!analysis || !analysis.pairMatrix || i < 0 || j < 0 ||
+      i >= layout.n || j >= layout.n || i === j ||
+      i >= analysis.sats.length || j >= analysis.sats.length) {
+    return null;
+  }
+
+  const a = Math.min(i, j);
+  const b = Math.max(i, j);
+  const idx = a * layout.n + b;
+  return {
+    analysis,
+    a,
+    b,
+    d: analysis.pairMatrix[idx],
+    t: analysis.pairTimeMatrix ? analysis.pairTimeMatrix[idx] : analysis.minTime
+  };
+}
+
+function updateHeatTip(e) {
+  if (!ui.heatTip) return;
+  const hit = heatPairAt(e.clientX, e.clientY);
+  if (!hit) {
+    hideHeatTip();
+    return;
+  }
+
+  const { analysis, a, b, d } = hit;
+  const sa = analysis.sats[a];
+  const sb = analysis.sats[b];
+  const cls = d < COLLISION_KM ? "var(--danger)" :
+    (d < SAFE_KM ? "var(--warn)" : "var(--safe)");
+  const verdict = d < COLLISION_KM ? "below the 1 km collision threshold" :
+    (d < SAFE_KM ? "below the 10 km safety limit" : "clear of the 10 km limit");
+
+  ui.heatTip.innerHTML =
+    "<b>" + sa.label + "</b> \u2194 <b>" + sb.label + "</b>" +
+    "<br>24 h minimum <b style=\"color:" + cls + "\">" + fmtKm(d) + "</b>" +
+    "<br>" + verdict +
+    (d > HEAT_MAX_KM ? "<br>beyond " + HEAT_MAX_KM + " km, at the far end of the scale" : "") +
+    "<br><span style=\"color:var(--accent)\">click to view closest pass</span>";
+  ui.heatTip.classList.add("show");
+  ui.heatmap.style.cursor = "pointer";
+
+  const tw = ui.heatTip.offsetWidth;
+  const th = ui.heatTip.offsetHeight;
+  let px = e.clientX + 14;
+  let py = e.clientY + 14;
+  if (px + tw > window.innerWidth - 8) px = e.clientX - tw - 14;
+  if (py + th > window.innerHeight - 8) py = e.clientY - th - 14;
+  ui.heatTip.style.left = px + "px";
+  ui.heatTip.style.top = py + "px";
+}
+
+/** Load the hovered pair's closest pass into the globe view. */
+function onHeatClick(e) {
+  const hit = heatPairAt(e.clientX, e.clientY);
+  if (!hit) return;
+
+  const { analysis, a, b, d, t } = hit;
+  const sa = analysis.sats[a];
+  const sb = analysis.sats[b];
+  focusPairAt(sa, sb, t);
+  hideHeatTip();
+  toast("Closest pass loaded: " + sa.label + " \u2194 " + sb.label +
+    " \u00b7 " + fmtClock(t) + " \u00b7 " + fmtKm(d), "info");
+}
+
+/* =========================================================================
    HUD / LIVE TELEMETRY
    ========================================================================= */
 function computeLiveMin() {
@@ -1747,6 +2064,8 @@ const TAU = Math.PI * 2;
 let sceneDpr = 1;
 let sceneW = 0;
 let sceneH = 0;
+let sceneDeckInset = 0;
+let sceneCenterX = 0;
 
 function fitScene() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1759,6 +2078,21 @@ function fitScene() {
   sceneDpr = dpr;
   sceneW = w;
   sceneH = h;
+}
+
+/**
+ * Cache the part of the viewport taken by the bottom analysis deck. This is
+ * measured only on init/resize so the render loop never touches the DOM.
+ */
+function measureLayout() {
+  sceneDeckInset = 0;
+  sceneCenterX = 0;
+  if (!ui.deck) return;
+  const rect = ui.deck.getBoundingClientRect();
+  if (rect.height > 0) {
+    sceneDeckInset = Math.max(0, Math.round(window.innerHeight - rect.top + 8));
+    sceneCenterX = rect.left + rect.width * 0.5;
+  }
 }
 
 /* deterministic starfield */
@@ -2051,9 +2385,14 @@ function renderScene() {
   const H = sceneH;
   const now = performance.now();
   const cam = cameraBasis();
-  const cx = W * 0.5;
-  const cy = H * 0.5 + 8;
-  const baseR = Math.min(W, H) * 0.285 * state.cam.zoom;
+  // Centre the globe in the free column above the analysis deck (cached on
+  // resize) instead of the geometric centre of the whole viewport.
+  const topInset = 72;
+  const bottomInset = Math.max(topInset + 140, H - sceneDeckInset);
+  const availH = bottomInset - topInset;
+  const cx = sceneCenterX || W * 0.5;
+  const cy = (topInset + bottomInset) * 0.5 + 4;
+  const baseR = Math.min(W, availH * 1.35) * 0.285 * state.cam.zoom;
   const scale = baseR / R_E;
 
   const project = p => {
@@ -2476,6 +2815,7 @@ function bindCanvasEvents() {
    MAIN LOOP + INIT
    ========================================================================= */
 let lastFrame = performance.now();
+let heatResizeTimer = null;
 
 function loop(now) {
   const dt = Math.min(0.05, (now - lastFrame) / 1000);
@@ -2512,11 +2852,21 @@ function init() {
   setSpeed(state.speed);
   updatePauseUI();
   fitScene();
+  measureLayout();
   updateHUD(true);
+  drawHeatmap();
 
   window.addEventListener("resize", () => {
     fitScene();
+    measureLayout();
     drawProfile();
+    // The heatmap can touch thousands of cells; coalesce resize redraws so a
+    // dragged window edge does not queue one full matrix pass per event.
+    if (heatResizeTimer) clearTimeout(heatResizeTimer);
+    heatResizeTimer = setTimeout(() => {
+      heatResizeTimer = null;
+      drawHeatmap();
+    }, 120);
   });
 
   requestAnimationFrame(loop);

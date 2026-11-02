@@ -173,12 +173,6 @@
           <div><span>Analysis</span><b id="aEpochs">&mdash;</b></div>
         </div>
 
-        <canvas id="profile" class="profile" title="Rolling 24-hour clearance profile for the current simulation day, sampled every 300 s from a full 24 h propagation at 10 s with secular J2. Brief conjunctions are refined. Click to scrub time."></canvas>
-        <div class="profile-caption">
-          <span id="profileLabel">Day 1 &middot; 24 h profile &middot; 300 s samples &middot; log scale</span>
-          <span id="profileCursor">T+00:00</span>
-        </div>
-
         <div id="feedback" class="feedback"></div>
 
         <button id="btnViewClose" class="btn ghost wide">&#9678; View closest pass</button>
@@ -194,9 +188,42 @@
     </div>
   </aside>
 
+  <!-- ================= BOTTOM: CLEARANCE PROFILE + PAIR HEATMAP ================= -->
+  <section id="deck" aria-label="Constellation clearance deck">
+    <div class="deck-pane profile-pane">
+      <div class="deck-head">
+        <h2>Clearance profile</h2>
+        <span class="tag">24 H</span>
+      </div>
+      <div class="deck-body">
+        <canvas id="profile" class="profile" title="Rolling 24-hour clearance profile for the current simulation day, sampled every 300 s from a full 24 h propagation at 10 s with secular J2. Brief conjunctions are refined. Click to scrub time."></canvas>
+      </div>
+      <div class="profile-caption">
+        <span id="profileLabel">Day 1 &middot; 24 h profile &middot; 300 s samples &middot; log scale</span>
+        <span id="profileCursor">T+00:00</span>
+      </div>
+    </div>
+
+    <div class="deck-pane heat-pane">
+      <div class="deck-head">
+        <h2>Pairwise minimum range</h2>
+        <span class="tag" id="heatTag">&mdash;</span>
+      </div>
+      <div class="deck-body">
+        <canvas id="heatmap" class="heatmap" title="Each cell is one satellite pair. Colour is the smallest 3D separation reached over the 24 hour screen: red below the 10 km safety limit, green when the pair stays clear. Hover for details, click to load that pair's closest pass in the globe."></canvas>
+      </div>
+      <div class="heat-caption">
+        <span id="heatLabel">24 h pair minima &middot; log scale</span>
+        <span class="heat-scale" aria-hidden="true"></span>
+        <span class="heat-note">red &lt; 10 km</span>
+      </div>
+    </div>
+  </section>
+
   <div id="hint">Drag to orbit the globe &middot; scroll to zoom &middot; double-click to reset</div>
   <div id="toast"></div>
   <div id="tooltip" class="tooltip"></div>
+  <div id="heatTip" class="tooltip"></div>
 </div>
 
 <script src="world.js"></script>
