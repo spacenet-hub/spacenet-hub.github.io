@@ -28,6 +28,7 @@
     color:var(--txt);font-family:var(--font-mono);font-size:var(--fs-lg);line-height:1.45;
     overflow:hidden;
   }
+  #disclaimer{text-align:center;color:var(--accent);}
   #app{display:flex;height:100vh;width:100vw;}
 
   /* ---------- left control column ---------- */

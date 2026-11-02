@@ -27,7 +27,9 @@
   --fs-xl: 15px;
   --panel-w: 344px;
   --panel-r: 380px;
-  --deck-h: 208px;
+  /* Split the area below the top bar 2:1 between the globe and the deck:
+     66px top bar + 16px bottom margin, so one third of what remains. */
+  --deck-h: max(150px, calc((100vh - 82px) / 3));
   --radius: 14px;
 }
 
@@ -47,7 +49,7 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
-
+#disclaimer { text-align: center; color: var(--accent); }
 #app { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 
 #scene {
@@ -584,7 +586,7 @@ input[type="range"]::-moz-range-thumb {
   flex: 1 1 auto;
   min-height: 0;
 }
-.deck .profile {
+#deck .profile {
   position: absolute;
   inset: 0;
   height: 100%;
@@ -599,8 +601,10 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--line-soft);
   border-radius: 8px;
   background: #070d18;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
 }
+.heatmap.panning { cursor: grabbing; }
 .heat-caption {
   display: flex;
   align-items: center;
@@ -797,7 +801,6 @@ input[type="range"]::-moz-range-thumb {
   .brand h1 { font-size: var(--fs-md); }
 }
 @media (max-height: 720px) {
-  :root { --deck-h: 170px; }
   .panel { top: 70px; bottom: 10px; }
   .brief { display: none; }
   .ctl { margin: 9px 0 11px; }

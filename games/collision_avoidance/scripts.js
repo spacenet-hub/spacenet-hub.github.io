@@ -128,6 +128,7 @@ const state = {
   screenSats: [],        // populated by the renderer for hit-testing
   focus: null,           // { sats: [a, b], t: seconds } closest-pass highlight
   heatLayout: null,      // { n, ox, oy, cell } cached by drawHeatmap for hover
+  heatView: { zoom: 1, cx: 0, cy: 0, key: null }, // pair-matrix zoom/pan
 
   resetArmed: false,
   resetTimer: null,
@@ -1598,11 +1599,81 @@ function bindEvents() {
     if (profile.hasPointerCapture(e.pointerId)) profile.releasePointerCapture(e.pointerId);
   });
 
-  // Heatmap hover is computed only while the pointer is over the canvas.
+  // Heatmap: hover for details, click to focus, wheel to zoom, drag to pan.
   if (ui.heatmap) {
-    ui.heatmap.addEventListener("pointermove", updateHeatTip);
-    ui.heatmap.addEventListener("pointerleave", hideHeatTip);
-    ui.heatmap.addEventListener("click", onHeatClick);
+    const heat = ui.heatmap;
+    let heatDragging = false;
+    let heatDragX = 0;
+    let heatDragY = 0;
+    let heatDragDist = 0;
+
+    heat.addEventListener("pointerdown", e => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      heatDragging = true;
+      heatDragMoved = false;
+      heatDragDist = 0;
+      heatDragX = e.clientX;
+      heatDragY = e.clientY;
+      heat.classList.add("panning");
+      heat.setPointerCapture(e.pointerId);
+      hideHeatTip();
+    });
+
+    heat.addEventListener("pointermove", e => {
+      if (!heatDragging) {
+        updateHeatTip(e);
+        return;
+      }
+      const dx = e.clientX - heatDragX;
+      const dy = e.clientY - heatDragY;
+      heatDragX = e.clientX;
+      heatDragY = e.clientY;
+      heatDragDist += Math.abs(dx) + Math.abs(dy);
+      if (heatDragDist >= 3) heatDragMoved = true;
+
+      const info = heatGeometryNow();
+      if (!info || !info.geo.ready || info.geo.zoom <= 1.0001) return;
+      // Drag the surface with the pointer: moving right shows content further
+      // left, which is a decrease in the content-space centre.
+      state.heatView.cx -= dx / info.geo.cell;
+      state.heatView.cy -= dy / info.geo.cell;
+      drawHeatmap();
+    });
+
+    function endHeatDrag(e) {
+      if (!heatDragging) return;
+      heatDragging = false;
+      heat.classList.remove("panning");
+      if (heat.hasPointerCapture(e.pointerId)) heat.releasePointerCapture(e.pointerId);
+    }
+    heat.addEventListener("pointerup", endHeatDrag);
+    heat.addEventListener("pointercancel", endHeatDrag);
+    heat.addEventListener("pointerleave", () => {
+      if (!heatDragging) hideHeatTip();
+    });
+    heat.addEventListener("click", onHeatClick);
+
+    heat.addEventListener("wheel", e => {
+      e.preventDefault();
+      const info = heatGeometryNow();
+      if (!info || !info.geo.ready) return;
+      const geo = info.geo;
+      const mx = e.clientX - info.rect.left;
+      const my = e.clientY - info.rect.top;
+      // Keep the matrix point under the pointer fixed while zooming.
+      const contentX = geo.cx + (mx - geo.vx) / geo.cell;
+      const contentY = geo.cy + (my - geo.vy) / geo.cell;
+      // Normalise line/page wheel modes so trackpads and mice feel similar.
+      const unit = e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? 100 : 1);
+      const nextZoom = clamp(geo.zoom * Math.exp(-e.deltaY * unit * 0.0015), 1, geo.maxZoom);
+      if (Math.abs(nextZoom - geo.zoom) < 0.0001) return;
+      const nextCell = geo.fitCell * nextZoom;
+      state.heatView.zoom = nextZoom;
+      state.heatView.cx = contentX - (mx - geo.vx) / nextCell;
+      state.heatView.cy = contentY - (my - geo.vy) / nextCell;
+      drawHeatmap();
+      updateHeatTip(e);
+    }, { passive: false });
   }
 }
 
@@ -1739,15 +1810,18 @@ function drawProfile() {
    PAIRWISE HEATMAP
    -------------------------------------------------------------------------
    The matrix itself is produced once per conjunction analysis (see
-   analyzeConstellation). This renderer runs only when the displayed analysis
-   changes or the canvas is resized, never from the animation loop, so it adds
-   nothing to the frame cost. Cells are plain rectangles rather than one path
-   per cell, keeping even a 120 x 120 matrix to a single cheap pass.
+   analyzeConstellation). This renderer runs when the displayed analysis
+   changes, the canvas is resized, or the user pans/zooms the matrix, never
+   from the animation loop, so it adds nothing to the frame cost. Cells are
+   plain rectangles rather than one path per cell, and a zoomed view only
+   visits the on-screen slice of the matrix.
    ========================================================================= */
 const HEAT_MIN_KM = 0.1;
 const HEAT_MAX_KM = 250;
 const HEAT_LOG_MIN = Math.log10(HEAT_MIN_KM);
 const HEAT_LOG_MAX = Math.log10(HEAT_MAX_KM);
+const HEAT_MAX_ZOOM = 24;
+const HEAT_TARGET_CELL = 34;   // px, cell size where deeper zoom stops helping
 
 // Stops interpolated in log-distance space: red below the safety limit,
 // amber at 10 km, green above it, fading into the panel near 250 km.
@@ -1797,6 +1871,75 @@ function heatLutIndex(d) {
   return clamp(Math.round(t * (HEAT_LUT.length - 1)), 0, HEAT_LUT.length - 1);
 }
 
+/**
+ * Resolve the pair matrix's fit/zoom transform. The fit is recalculated from
+ * the live canvas size, then the user's zoom and centre are clamped so the
+ * matrix always covers the viewport while zoomed in. The clamped view is
+ * written back to state so wheel, drag, rendering, and hit-testing agree.
+ */
+function heatGeometry(w, h) {
+  const analysis = currentViewAnalysis();
+  const pad = 6;
+  const plotW = w - pad * 2;
+  const plotH = h - pad * 2;
+  const n = analysis && analysis.pairMatrix ? analysis.sats.length : 0;
+  const geo = {
+    analysis, n, w, h, pad, plotW, plotH,
+    vx: pad + plotW / 2,
+    vy: pad + plotH / 2,
+    ready: false
+  };
+  if (!analysis || n < 2 || analysis.pairMatrix.length < n * n) return geo;
+
+  let view = state.heatView;
+  if (!view) view = state.heatView = { zoom: 1, cx: 0, cy: 0, key: null };
+  if (view.key !== analysis) {
+    view.key = analysis;
+    view.zoom = 1;
+    view.cx = n / 2;
+    view.cy = n / 2;
+  }
+
+  const fitCell = Math.min(plotW / n, plotH / n, 30);
+  if (!(fitCell > 0)) return geo;
+  // Stop once cells are comfortable to read. The cap rises automatically for
+  // denser matrices, while small constellations still get a useful range.
+  const maxZoom = clamp(HEAT_TARGET_CELL / fitCell, 4, HEAT_MAX_ZOOM);
+  const zoom = clamp(view.zoom, 1, maxZoom);
+  const cell = fitCell * zoom;
+  const halfCols = plotW / (2 * cell);
+  const halfRows = plotH / (2 * cell);
+  const cx = halfCols * 2 >= n ? n / 2 : clamp(view.cx, halfCols, n - halfCols);
+  const cy = halfRows * 2 >= n ? n / 2 : clamp(view.cy, halfRows, n - halfRows);
+
+  view.zoom = zoom;
+  view.cx = cx;
+  view.cy = cy;
+
+  const ox = geo.vx - cx * cell;
+  const oy = geo.vy - cy * cell;
+  geo.ready = true;
+  geo.fitCell = fitCell;
+  geo.maxZoom = maxZoom;
+  geo.zoom = zoom;
+  geo.cell = cell;
+  geo.cx = cx;
+  geo.cy = cy;
+  geo.ox = ox;
+  geo.oy = oy;
+  geo.gridW = cell * n;
+  geo.gridH = cell * n;
+  return geo;
+}
+
+function heatGeometryNow() {
+  const canvas = ui.heatmap;
+  if (!canvas) return null;
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width < 20 || rect.height < 20) return null;
+  return { rect, geo: heatGeometry(Math.round(rect.width), Math.round(rect.height)) };
+}
+
 function drawHeatmap() {
   const canvas = ui.heatmap;
   if (!canvas) return;
@@ -1818,9 +1961,9 @@ function drawHeatmap() {
   ctx.fillStyle = "#070d18";
   ctx.fillRect(0, 0, w, h);
 
-  const analysis = currentViewAnalysis();
-  const n = analysis && analysis.pairMatrix ? analysis.sats.length : 0;
-  if (!analysis || n < 2 || analysis.pairMatrix.length < n * n) {
+  const geo = heatGeometry(w, h);
+  const analysis = geo.analysis;
+  if (!geo.ready) {
     state.heatLayout = null;
     ctx.fillStyle = "#4f5f7c";
     ctx.font = "9px " + (getComputedStyle(document.body).fontFamily || "monospace");
@@ -1832,48 +1975,61 @@ function drawHeatmap() {
     return;
   }
 
-  const pad = 6;
-  const plotW = w - pad * 2;
-  const plotH = h - pad * 2;
-  const cell = Math.min(plotW / n, plotH / n, 30);
-  const gridW = cell * n;
-  const gridH = cell * n;
-  const ox = pad + (plotW - gridW) / 2;
-  const oy = pad + (plotH - gridH) / 2;
-
+  const n = geo.n;
+  const pad = geo.pad;
+  const cell = geo.cell;
+  const ox = geo.ox;
+  const oy = geo.oy;
   const m = analysis.pairMatrix;
   const gap = cell > 3 ? 0.6 : 0;
   const cw = Math.max(1, cell - gap);
 
+  /* Whole-matrix count for the caption; the fill pass only visits cells that
+     can actually be seen at the current zoom. */
   let closePairs = 0;
   for (let i = 0; i < n; i++) {
     const row = i * n;
     for (let j = i + 1; j < n; j++) {
+      if (m[row + j] <= HEAT_MAX_KM) closePairs++;
+    }
+  }
+
+  /* Visible row/column window (plus a one-cell margin) derived from the
+     clamped centre, so panning and zooming never scan the full matrix. */
+  const halfCols = geo.plotW / (2 * cell);
+  const halfRows = geo.plotH / (2 * cell);
+  const j0 = Math.max(0, Math.floor(geo.cx - halfCols) - 1);
+  const j1 = Math.min(n - 1, Math.ceil(geo.cx + halfCols) + 1);
+  const i0 = Math.max(0, Math.floor(geo.cy - halfRows) - 1);
+  const i1 = Math.min(n - 1, Math.ceil(geo.cy + halfRows) + 1);
+
+  for (let i = i0; i <= i1; i++) {
+    const row = i * n;
+    const y = oy + i * cell;
+    for (let j = j0; j <= j1; j++) {
+      if (i === j) continue;
       const d = m[row + j];
-      const x1 = ox + j * cell;
-      const y1 = oy + i * cell;
-      const x2 = ox + i * cell;
-      const y2 = oy + j * cell;
-      if (d <= HEAT_MAX_KM) {
-        closePairs++;
-        ctx.fillStyle = HEAT_LUT[heatLutIndex(d)];
-      } else {
-        // Beyond the colour range the pair is comfortably clear; use the far
-        // end of the scale so the matrix still reads as a complete surface.
-        ctx.fillStyle = HEAT_LUT[HEAT_LUT.length - 1];
-      }
-      ctx.fillRect(x1, y1, cw, cw);
-      ctx.fillRect(x2, y2, cw, cw);
+      // Beyond the colour range the pair is comfortably clear; use the far
+      // end of the scale so the matrix still reads as a complete surface.
+      ctx.fillStyle = d <= HEAT_MAX_KM ?
+        HEAT_LUT[heatLutIndex(d)] : HEAT_LUT[HEAT_LUT.length - 1];
+      ctx.fillRect(ox + j * cell, y, cw, cw);
     }
   }
 
   /* diagonal is not a pair, but keeps the matrix readable */
   ctx.fillStyle = "rgba(70, 216, 255, 0.10)";
-  for (let i = 0; i < n; i++) {
+  const d0 = Math.max(i0, j0);
+  const d1 = Math.min(i1, j1);
+  for (let i = d0; i <= d1; i++) {
     ctx.fillRect(ox + i * cell, oy + i * cell, cw, cw);
   }
 
   /* plane boundaries reveal the block structure of the constellation */
+  const lineTop = Math.max(oy, pad);
+  const lineBottom = Math.min(oy + geo.gridH, pad + geo.plotH);
+  const lineLeft = Math.max(ox, pad);
+  const lineRight = Math.min(ox + geo.gridW, pad + geo.plotW);
   ctx.strokeStyle = "rgba(70, 216, 255, 0.20)";
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -1881,16 +2037,20 @@ function drawHeatmap() {
     if (analysis.sats[i].plane !== analysis.sats[i - 1].plane) {
       const x = ox + i * cell;
       const y = oy + i * cell;
-      ctx.moveTo(x, oy);
-      ctx.lineTo(x, oy + gridH);
-      ctx.moveTo(ox, y);
-      ctx.lineTo(ox + gridW, y);
+      if (x >= pad && x <= pad + geo.plotW) {
+        ctx.moveTo(x, lineTop);
+        ctx.lineTo(x, lineBottom);
+      }
+      if (y >= pad && y <= pad + geo.plotH) {
+        ctx.moveTo(lineLeft, y);
+        ctx.lineTo(lineRight, y);
+      }
     }
   }
   ctx.stroke();
 
   ctx.strokeStyle = "rgba(80, 110, 150, 0.50)";
-  ctx.strokeRect(ox - 0.5, oy - 0.5, gridW + 1, gridH + 1);
+  ctx.strokeRect(ox - 0.5, oy - 0.5, geo.gridW + 1, geo.gridH + 1);
 
   if (closePairs === 0) {
     const label = "no pair closer than " + HEAT_MAX_KM + " km";
@@ -1898,8 +2058,9 @@ function drawHeatmap() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const tw = ctx.measureText(label).width + 16;
-    const tx = ox + gridW / 2;
-    const ty = oy + gridH / 2;
+    // Anchor the note to the visible pane, not the (possibly panned) grid.
+    const tx = geo.vx;
+    const ty = geo.vy;
     ctx.fillStyle = "rgba(7, 13, 24, 0.88)";
     ctx.fillRect(tx - tw / 2, ty - 9, tw, 18);
     ctx.fillStyle = "#8fa3c2";
@@ -1911,9 +2072,12 @@ function drawHeatmap() {
   if (ui.heatTag) ui.heatTag.textContent = n + " \u00d7 " + n;
   if (ui.heatLabel) {
     ui.heatLabel.textContent = closePairs + "/" + analysis.pairCount +
-      " pairs < " + HEAT_MAX_KM + " km";
+      " pairs < " + HEAT_MAX_KM + " km" +
+      (geo.zoom > 1.005 ? " \u00b7 " + geo.zoom.toFixed(1) + "\u00d7" : "");
   }
 }
+
+let heatDragMoved = false;
 
 function hideHeatTip() {
   if (!ui.heatTip) return;
@@ -1991,6 +2155,11 @@ function updateHeatTip(e) {
 
 /** Load the hovered pair's closest pass into the globe view. */
 function onHeatClick(e) {
+  if (heatDragMoved) {
+    // The pointer gesture was a pan, not a cell click.
+    heatDragMoved = false;
+    return;
+  }
   const hit = heatPairAt(e.clientX, e.clientY);
   if (!hit) return;
 
@@ -2659,10 +2828,14 @@ function renderScene() {
       ctx.textBaseline = "middle";
       const label = fmtKm(dist);
       const tw = ctx.measureText(label).width;
+      // Lift the readout above the pair markers: at a close pass the two
+      // points (and the dashed connector) sit almost on top of each other, so
+      // a label centred just above the midpoint would cover them.
+      const labelY = my - 26;
       ctx.fillStyle = "rgba(4, 10, 18, 0.82)";
-      ctx.fillRect(mx - tw / 2 - 5, my - 15, tw + 10, 15);
+      ctx.fillRect(mx - tw / 2 - 5, labelY - 8, tw + 10, 15);
       ctx.fillStyle = col;
-      ctx.fillText(label, mx, my - 7);
+      ctx.fillText(label, mx, labelY);
       ctx.restore();
     }
   }
