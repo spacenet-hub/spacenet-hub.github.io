@@ -51,31 +51,31 @@ By assembling these principles as an open-source website, we aim to encourage on
 
 # The Principles
 
-[**Avoid Collisions**](principles/collisions.html)
+**Avoid Collisions** [[PAGE](principles/collisions.html)] [[GAME](games/collision_avoidance/)]
 <br/>
 We should be sure satellites in the same constellation will not collide with each other.
 
-[**Near-Earth Hazards**](principles/hazards.html)
+**Near-Earth Hazards** [[PAGE](principles/hazards.html)]
 <br/>
 LSN designs should account for the structure of near-Earth hazards like the Van Allen radiation belts.
 
-[**Satellite Power Dynamics**](principles/power.html)
+**Satellite Power Dynamics** [[PAGE](principles/power.html)}
 <br/>
 LSN designs should account for power dynamics such as passages through Earth's shadow and expected battery lifetimes.
 
-[**ISL Constraints**](principles/isls.html)
+**ISL Constraints** [[PAGE](principles/isls.html)]
 <br/>
 Proposed use of inter-satellite links (ISLs) should leverage link setup time constraints.
 
-[**Incremental Deployment**](principles/deployment.html)
+**Incremental Deployment** [[PAGE](principles/deployment.html)]
 <br/>
 LSN operations should account for costs and constraints of incrementally launching new constellations.
 
-[**Orbital Dynamics**](principles/dynamics.html)
+**Orbital Dynamics** [[PAGE](principles/dynamics.html)] [[GAME](games/orbital_dynamics/)]
 <br/>
 We should be sure that satellites are where we want them to be when we want them to be there over the LSN's full lifetime.
 
-[**Thermal Dynamics**](principles/thermal.html)
+**Thermal Dynamics** [[STUB](principles/thermal.html)]
 <br/>
 Thinking about temperature in the near vacuum of space requires going beyond Earth-based intuitions about "hot" and "cold".
 

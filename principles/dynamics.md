@@ -34,6 +34,15 @@ When an LSN proposal fails to correctly account for orbital dynamics, any assump
 LSN researchers must develop a basic understanding of common orbital dynamic concepts including the intimate relationship between space and time and specific forces that impact both short and long term evolution of orbital parameters (e.g., nodal regression).
 
 </div>
+<div class="content-block" markdown="1">
+
+### The game
+
+We made a simple game to illustrate some of the challenges in understanding orbital dynamics. Play it [here](/games/orbital_dynamics/)!
+
+</div>
+
+
 </div>
 
 <div class="content-container" markdown="1">

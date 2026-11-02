@@ -45,6 +45,12 @@ html, body {
   margin: 0;
 }
 
+a {
+  color: var(--txt);
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+}
+
 body {
   background: radial-gradient(1300px 900px at 68% -12%, #111c36 0%, var(--bg) 62%);
   color: var(--txt);

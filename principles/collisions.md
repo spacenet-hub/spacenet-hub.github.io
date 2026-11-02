@@ -34,6 +34,14 @@ LSN proposals must prove that their proposed orbits do not collide with each oth
 Note that this principle has been automatically realized in many prior efforts due to use of well-studied orbital geometries like Walker-delta, but does not hold by default in recent proposals that target novel networking-specific geometries.
 
 </div>
+<div class="content-block" markdown="1">
+
+### The game
+
+We made a simple game to illustrate the challenge of building customized constellation geometries. Play it [here](/games/collision_avoidance/)!
+
+</div>
+
 </div>
 
 <div class="content-container" markdown="1">
