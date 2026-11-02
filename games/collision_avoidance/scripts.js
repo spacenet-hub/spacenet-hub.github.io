@@ -916,7 +916,6 @@ const $ = id => document.getElementById(id);
 const ui = {
   scene: $("scene"),
   clock: $("clock"),
-  speedLabel: $("speedLabel"),
   btnPause: $("btnPause"),
   btnUI: $("btnUI"),
   left: $("left"),
@@ -924,7 +923,6 @@ const ui = {
 
   score: $("score"),
   satCount: $("satCount"),
-  satCap: $("satCap"),
   planeCount: $("planeCount"),
   committedMin: $("committedMin"),
   liveMin: $("liveMin"),
@@ -1103,7 +1101,7 @@ function updatePreviewTag() {
     return;
   }
   if (!state.previewArmed) {
-    ui.previewTag.textContent = "NEW PLANE";
+    ui.previewTag.textContent = "DRAG FOR NEW PLANE";
     return;
   }
   ui.previewTag.textContent = state.preview && state.preview.stale
@@ -1282,7 +1280,6 @@ function updateAllUI() {
 function updateStats() {
   ui.score.textContent = state.score.toLocaleString("en-US");
   ui.satCount.textContent = String(state.sats.length);
-  ui.satCap.textContent = "/ " + MAX_SATS;
   ui.planeCount.textContent = String(state.planes.length);
 
   const a = state.analysis;
@@ -1447,7 +1444,6 @@ function setPaused(paused) {
 
 function setSpeed(speed) {
   state.speed = speed;
-  ui.speedLabel.textContent = speed + "\u00d7";
   document.querySelectorAll(".spd").forEach(b => {
     b.classList.toggle("active", +b.dataset.speed === speed);
   });

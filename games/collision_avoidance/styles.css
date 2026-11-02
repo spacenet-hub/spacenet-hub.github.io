@@ -11,7 +11,7 @@
   --line: #223052;
   --line-soft: #16213a;
   --txt: #d3def4;
-  --dim: #8c9ab9;
+  --dim: #a3adc6;;
   --dim-2: #647493;
   --accent: #46d8ff;
   --accent-2: #ffd166;
@@ -19,12 +19,17 @@
   --warn: #ffc04d;
   --danger: #ff5e72;
   --violet: #9b8cff;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --fs-xs: 10px;
-  --fs-sm: 11px;
-  --fs-md: 12px;
-  --fs-lg: 13px;
-  --fs-xl: 15px;
+
+  /* type scale: one base size, one step, everything else derived from them */
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --fs-base:16px;                       /* body copy                      */
+  --fs-step:1px;                        /* one step of the scale          */
+  --fs-xs:calc(var(--fs-base) - 3*var(--fs-step));  /* 10px micro labels  */
+  --fs-sm:calc(var(--fs-base) - 2*var(--fs-step));  /* 11px controls      */
+  --fs-md:calc(var(--fs-base) - 1*var(--fs-step));  /* 12px values/toast  */
+  --fs-lg:var(--fs-base);                           /* 13px body          */
+  --fs-xl:calc(var(--fs-base) + 1*var(--fs-step));  /* 14px heading       */
+
   --panel-w: 344px;
   --panel-r: 380px;
   /* Split the area below the top bar 2:1 between the globe and the deck:
@@ -214,7 +219,7 @@ button { font-family: inherit; }
 .panel .scroll::-webkit-scrollbar { width: 8px; }
 .panel .scroll::-webkit-scrollbar-thumb { background: #243555; border-radius: 5px; }
 
-.block { padding: 12px 0 14px; border-bottom: 1px solid var(--line-soft); }
+.block { padding: 7px 0; border-bottom: 1px solid var(--line-soft); }
 .block:last-child { border-bottom: 0; }
 .block-head {
   display: flex;
@@ -243,9 +248,9 @@ button { font-family: inherit; }
 }
 
 .brief {
-  margin: -2px 0 11px;
+  margin: 0 0 8px;
   font-size: var(--fs-sm);
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--dim);
 }
 .brief b { color: var(--accent-2); }
@@ -802,7 +807,6 @@ input[type="range"]::-moz-range-thumb {
 }
 @media (max-height: 720px) {
   .panel { top: 70px; bottom: 10px; }
-  .brief { display: none; }
   .ctl { margin: 9px 0 11px; }
   .log { max-height: 130px; }
 }
